@@ -1,11 +1,10 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: "Space Grotesk","Sora","Plus Jakarta Sans",ui-sans-serif,system-ui;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color: #e2e8f0;
+  background-color: #0b0f17;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -24,45 +23,41 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background:
+    radial-gradient(900px 600px at 15% -10%, rgba(56,189,248,0.18), transparent 70%),
+    radial-gradient(800px 520px at 85% 10%, rgba(99,102,241,0.18), transparent 70%),
+    radial-gradient(1200px 900px at 50% 120%, rgba(20,184,166,0.12), transparent 70%),
+    linear-gradient(180deg, #0a0f1a 0%, #05070c 100%);
+  color: #e2e8f0;
 }
 
 h1 {
-  font-size: 3.2em;
+  font-size: 2.4em;
   line-height: 1.1;
+  letter-spacing: 0.5px;
 }
 
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
+  border-radius: 10px;
+  border: 1px solid rgba(148,163,184,0.35);
   padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
+  font-size: 0.95em;
+  font-weight: 600;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: rgba(15,23,42,0.8);
+  color: #e2e8f0;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: rgba(94,234,212,0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 30px rgba(2,6,23,0.45);
 }
 button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+  outline: 2px solid rgba(94,234,212,0.9);
+  outline-offset: 2px;
 }
