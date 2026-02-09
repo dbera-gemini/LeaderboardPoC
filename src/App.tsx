@@ -10,15 +10,32 @@ import TeamCard from './components/TeamCard'
 import LeaderboardList from './components/LeaderboardList'
 import LeaderboardGrid from './components/LeaderboardGrid'
 import Header from './components/Header'
+import teamALogo from './assets/design/Team-A.png'
+import teamBLogo from './assets/design/Team-B.png'
+import teamGLogo from './assets/design/Team-G.png'
+import Countdown from './components/Countdown'
+import headerImage from './assets/design/Header.png'
 
 function App() {
   const [items, setItems] = useState<any[]>([])
   const [leaderboard, setLeaderboard] = useState<{ user: string; score: number; ts?: number }[]>([]) 
   const [showDesign, setShowDesign] = useState(false)
+  const [endAt] = useState(() => Date.now() + 15 * 24 * 60 * 60 * 1000)
+  function computeMaxDrawdown(series: number[]) {
+    if (!series || series.length < 2) return 0
+    let peak = series[0]
+    let maxDD = 0
+    for (const v of series) {
+      peak = Math.max(peak, v)
+      const dd = peak === 0 ? 0 : (peak - v) / peak
+      maxDD = Math.max(maxDD, dd)
+    }
+    return maxDD * 100
+  }
   const [teams, setTeams] = useState(() => [
-    { id: 'alpha', name: 'Team Alpha', series: [100, 120, 80, 150] },
-    { id: 'beta', name: 'Team Beta', series: [50, 60, 40, 90] },
-    { id: 'gamma', name: 'Team Gamma', series: [200, 180, 210, 190] },
+    { id: 'alpha', name: 'Team Alpha', series: [100, 120, 80, 150], sharpe: 1.1, maxDrawdown: computeMaxDrawdown([100, 120, 80, 150]) },
+    { id: 'beta', name: 'Team Beta', series: [50, 60, 40, 90], sharpe: 0.6, maxDrawdown: computeMaxDrawdown([50, 60, 40, 90]) },
+    { id: 'gamma', name: 'Team Gamma', series: [200, 180, 210, 190], sharpe: 1.8, maxDrawdown: computeMaxDrawdown([200, 180, 210, 190]) },
   ])
 
   useEffect(() => {
@@ -43,7 +60,11 @@ function App() {
           const key = msg.entry.user || ''
           const idx = Math.abs(key.split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0)) % next.length
           const value = typeof msg.entry.score === 'number' ? msg.entry.score : Math.floor(Math.random() * 200)
-          next[idx].series = [...next[idx].series.slice(-49), value]
+          const sharpe = typeof msg.entry.sharpe === 'number' ? msg.entry.sharpe : next[idx].sharpe
+          const series = [...next[idx].series.slice(-49), value]
+          next[idx].series = series
+          next[idx].sharpe = sharpe
+          next[idx].maxDrawdown = computeMaxDrawdown(series)
           return next
         })
       }
@@ -71,17 +92,42 @@ function App() {
 
   return (
     <div className="App page-container">
+      <div className="hero-banner">
+        <img src={headerImage} alt="Leaderboard header" />
+      </div>
 
-
-
-      <h1>Leaderboard POC</h1>
+      <div className="header-row">
+        <Countdown endAt={endAt} timeZone="America/New_York" />
+        <div />
+      </div>
 
 
       <section className="card lb-area">
         <div className="team-cards">
-          <TeamCard name={teams[0].name} series={teams[0].series} color="#34d399" />
-          <TeamCard name={teams[1].name} series={teams[1].series} color="#60a5fa" />
-          <TeamCard name={teams[2].name} series={teams[2].series} color="#f59e0b" />
+          <TeamCard
+            name={teams[0].name}
+            series={teams[0].series}
+            sharpe={teams[0].sharpe}
+            maxDrawdown={teams[0].maxDrawdown}
+            color="#34d399"
+            logoSrc={teamALogo}
+          />
+          <TeamCard
+            name={teams[1].name}
+            series={teams[1].series}
+            sharpe={teams[1].sharpe}
+            maxDrawdown={teams[1].maxDrawdown}
+            color="#60a5fa"
+            logoSrc={teamBLogo}
+          />
+          <TeamCard
+            name={teams[2].name}
+            series={teams[2].series}
+            sharpe={teams[2].sharpe}
+            maxDrawdown={teams[2].maxDrawdown}
+            color="#f59e0b"
+            logoSrc={teamGLogo}
+          />
         </div>
         
 

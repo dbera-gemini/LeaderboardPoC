@@ -3,7 +3,7 @@ import { AgGridReact } from 'ag-grid-react'
 import 'ag-grid-community/styles/ag-grid.css'
 import 'ag-grid-community/styles/ag-theme-alpine.css'
 
-type Team = { id: string; name: string; series: number[] }
+type Team = { id: string; name: string; series: number[]; sharpe?: number; maxDrawdown?: number }
 
 function computeMetrics(team: Team) {
   const s = team.series || []
@@ -12,6 +12,15 @@ function computeMetrics(team: Team) {
   const last = n ? s[n - 1] : 0
   const realized = last - first
   const pnlPct = first !== 0 ? (realized / Math.abs(first)) * 100 : realized * 100
+
+  if (typeof team.sharpe === 'number' || typeof team.maxDrawdown === 'number') {
+    return {
+      realized,
+      pnlPct,
+      sharpe: team.sharpe,
+      maxDrawdown: team.maxDrawdown,
+    }
+  }
 
   // compute simple sharpe using daily returns over available series
   const returns: number[] = []
@@ -117,6 +126,13 @@ export default function LeaderboardGrid({ teams }: { teams: Team[] }) {
         valueFormatter: (p: any) => (typeof p.value === 'number' ? p.value.toFixed(2) : p.value),
         sortable: true,
         width: 120,
+      },
+      {
+        field: 'maxDrawdown',
+        headerName: 'Max Drawdown',
+        valueFormatter: (p: any) => (typeof p.value === 'number' ? `${p.value.toFixed(2)}%` : p.value),
+        sortable: true,
+        width: 150,
       },
     ],
     []

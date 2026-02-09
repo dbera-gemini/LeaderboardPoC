@@ -16,6 +16,7 @@ function sendRandomScore(ws) {
     data: {
       user: ['Alice', 'Bob', 'Carol', 'Dave'][Math.floor(Math.random() * 4)],
       score: Math.floor(Math.random() * 1000),
+      sharpe: Number((Math.random() * 4 - 1).toFixed(2)),
       ts: Date.now(),
     },
   }

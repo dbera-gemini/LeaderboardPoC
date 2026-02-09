@@ -7,6 +7,7 @@ type Props = {
   sharpe?: number;           // optional
   maxDrawdown?: number;      // optional (as % e.g. 12.3)
   color?: string;
+  logoSrc?: string;
 };
 
 function Sparkline({
@@ -91,6 +92,7 @@ export default function TeamCard({
   sharpe,
   maxDrawdown,
   color = "#60a5fa",
+  logoSrc = "src/assets/design/team-logo.png",
 }: Props) {
   const last = series?.length ? series[series.length - 1] : 0;
   const pnl = typeof realizedPnl === "number" ? realizedPnl : last;
@@ -114,13 +116,11 @@ export default function TeamCard({
         <div className="team-card-top">
           <div className="team-card-identity">
             <div className="team-card-logo">
-              <img src="src/assets/design/team-logo.png" alt="Team logo" />
+              <img src={logoSrc} alt={`${name} logo`} />
             </div>
-            <div>
-              <div className="team-card-name">{name}</div>
-              <div className="team-card-subtitle">
-                Portfolio · Hourly · {lastN.length} pts
-              </div>
+            <div className="team-card-name">{name}</div>
+            <div className="team-card-subtitle">
+              Portfolio · Hourly · {lastN.length} pts
             </div>
           </div>
           <div className="team-card-top-right">

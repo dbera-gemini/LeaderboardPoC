@@ -7,9 +7,9 @@
 
 /* Page container with explicit sizing per design request */
 .page-container {
-  width: 1200px; /* 25% smaller than 1600px */
-  height: 1910px; /* ~25% smaller than 2546px */
-  padding-top: 60px; /* reduced from 80px */
+  width: min(1600px, 100%);
+  min-height: 100vh;
+  padding: 40px 24px 80px;
   transform: rotate(0deg);
   opacity: 1;
   margin: 0 auto;
