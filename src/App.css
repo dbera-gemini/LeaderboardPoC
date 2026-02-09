@@ -5,6 +5,17 @@
   text-align: center;
 }
 
+/* Page container with explicit sizing per design request */
+.page-container {
+  width: 1200px; /* 25% smaller than 1600px */
+  height: 1910px; /* ~25% smaller than 2546px */
+  padding-top: 60px; /* reduced from 80px */
+  transform: rotate(0deg);
+  opacity: 1;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;

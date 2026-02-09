@@ -4,8 +4,6 @@ This template provides a minimal setup to get React working in Vite with HMR and
 
 Currently, two official plugins are available:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
 ## React Compiler
 
@@ -70,4 +68,43 @@ export default defineConfig([
     },
   },
 ])
+
+## Running the mock WebSocket server (for testing)
+
+This project includes a small mock WebSocket server used to emit test messages the app consumes via a web-worker data processor.
+
+Start the mock server (requires dependencies installed):
+
+```bash
+# Start the Node mock WebSocket server
+npm run start-mock-ws
+```
+
+The mock server listens by default on `ws://localhost:8080` and will print connections and emitted messages to the terminal.
+
+In a second terminal window start the Vite dev server:
+
+```bash
+npm run dev
+```
+
+Open the app (usually at http://localhost:5173). The app subscribes to the `scores` topic and will display live updates from the mock server.
+
+### Previewing Figma wireframes locally
+
+You can preview the Figma embed provided by the design team using the built-in preview page while the dev server is running.
+
+1. Start the dev server:
+
+```bash
+npm run dev
+```
+
+2. Open the local preview page:
+
+```
+http://localhost:5173/figma-embed.html
+```
+
+This page contains an embedded iframe of the design. If the Figma file is private you may need to sign in to Figma or use a public share link.
 ```
