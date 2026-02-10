@@ -34,6 +34,14 @@ The client will:
 - treat the snapshot as immutable history,
 - append deltas to the live series.
 
+## Score Calculation
+The app does **not** calculate score. It treats `score` as a time‑series value provided by the server (e.g., cumulative P&L). The UI uses the series to derive:
+- **Realized P&L**: `last(score) - first(score)`
+- **P&L %**: `(realized / |first|) * 100`
+- **Chart**: plots the 24‑hour history plus live deltas
+
+If you want a different scoring model, compute it server‑side and send it as the `score` field.
+
 ### WebSocket Payloads
 All messages are JSON with a `topic` and `data`.
 
