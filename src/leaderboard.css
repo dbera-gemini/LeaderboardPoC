@@ -310,6 +310,15 @@
   gap:10px;
 }
 .team-details-chart{width:100%;height:auto;display:block}
+.team-details-times{
+  margin-top:8px;
+  display:flex;
+  justify-content:space-between;
+  font-size:10px;
+  letter-spacing:0.8px;
+  color:rgba(148,163,184,0.75);
+  text-transform:uppercase;
+}
 .team-details-axis{
   display:flex;
   flex-direction:column;

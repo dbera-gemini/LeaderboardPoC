@@ -90,7 +90,13 @@ function App() {
       try {
         const parsed = JSON.parse(ev.data as string)
         // forward to worker
-        if (parsed && parsed.topic) dp.ingest(parsed.topic, parsed.data)
+        if (parsed && parsed.topic) {
+          if (parsed.type === 'snapshot') {
+            for (const entry of parsed.data || []) dp.ingest(parsed.topic, entry)
+          } else {
+            dp.ingest(parsed.topic, parsed.data)
+          }
+        }
       } catch (err) {
         console.error('invalid ws message', err)
       }

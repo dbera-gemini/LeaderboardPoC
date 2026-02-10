@@ -178,6 +178,13 @@ export default function TeamDetails({
       <div className="team-details-main">
         <div className="team-details-chart-wrap">
           <Sparkline data={cumulative} color={color} height={273} showRightAxis />
+          <div className="team-details-times">
+            <span>24h</span>
+            <span>18h</span>
+            <span>12h</span>
+            <span>6h</span>
+            <span>Now</span>
+          </div>
         </div>
 
         <div className="team-details-stats">
