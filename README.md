@@ -1,110 +1,108 @@
-# React + TypeScript + Vite
+# Leaderboard POC
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This app renders a live trading leaderboard with team cards, an AG Grid table, and a Team Details view. Data is streamed from a mock WebSocket server and processed via a web-worker.
 
-Currently, two official plugins are available:
+## How the App Works
 
+### Data Flow Overview
+1. **Mock WebSocket server** emits messages on the `scores` topic.
+2. **Web worker** (`src/workers/dataProcessor.worker.ts`) ingests messages and broadcasts updates.
+3. **App state** (`src/App.tsx`) updates teams, the grid, and the details view.
 
-## React Compiler
+### Snapshot + Continuous Stream Logic
+The mock server sends:
+- **Snapshot**: a 24‑hour historical series per user on connect.
+- **Continuous stream**: new deltas after the snapshot.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+In the app:
+- `historySeries` is populated from the snapshot and **never mutated**.
+- `liveSeries` is appended with incoming deltas.
+- The chart uses `historySeries + liveSeries` so the left (historical) portion stays fixed while new points append on the right.
 
-## Expanding the ESLint configuration
+## API + Data Structures
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### WebSocket Payloads
+All messages are JSON with a `topic` and `data`.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+#### Snapshot message
+```json
+{
+  "topic": "scores",
+  "type": "snapshot",
+  "data": [
+    {
+      "user": "Alice",
+      "score": 532,
+      "sharpe": 1.12,
+      "asset": "BTC",
+      "assetPnl": 45.2,
+      "assetVolume": 10234.5,
+      "ts": 1700000000000
+    }
+  ]
+}
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+#### Update message
+```json
+{
+  "topic": "scores",
+  "data": {
+    "user": "Alice",
+    "score": 540,
+    "sharpe": 1.08,
+    "asset": "ETH",
+    "assetPnl": -12.4,
+    "assetVolume": 5342.9,
+    "ts": 1700003600000
+  }
+}
+```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Team State Shape (simplified)
+```ts
+type Team = {
+  id: string
+  name: string
+  series: number[]        // history + live
+  historySeries: number[] // fixed 24h snapshot
+  liveSeries: number[]    // deltas after snapshot
+  sharpe?: number
+  maxDrawdown?: number
+  assets: Record<string, { count: number; pnl: number; volume: number }>
+}
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Asset Heatmap
+The Team Details view aggregates assets by:
+- `count` (number of trades)
+- `pnl` (sum of assetPnl)
+- `volume` (sum of assetVolume)
 
-## Running the mock WebSocket server (for testing)
+Bubble sizing is based on **total volume** and color intensity is based on **P&L magnitude** (green for positive, red for negative).
 
-This project includes a small mock WebSocket server used to emit test messages the app consumes via a web-worker data processor.
+## Running the App
 
-Start the mock server (requires dependencies installed):
-
+Install dependencies:
 ```bash
-# Start the Node mock WebSocket server
+npm install
+```
+
+Start the mock WebSocket server:
+```bash
 npm run start-mock-ws
 ```
 
-The mock server listens by default on `ws://localhost:8080` and will print connections and emitted messages to the terminal.
-
-In a second terminal window start the Vite dev server:
-
+In a second terminal, start the Vite dev server:
 ```bash
 npm run dev
 ```
 
-Open the app (usually at http://localhost:5173). The app subscribes to the `scores` topic and will display live updates from the mock server.
-
-### Previewing Figma wireframes locally
-
-You can preview the Figma embed provided by the design team using the built-in preview page while the dev server is running.
-
-1. Start the dev server:
-
-```bash
-npm run dev
+Open the app:
+```
+http://localhost:5173
 ```
 
-2. Open the local preview page:
-
-```
-http://localhost:5173/figma-embed.html
-```
-
-This page contains an embedded iframe of the design. If the Figma file is private you may need to sign in to Figma or use a public share link.
-```
+## Notes
+- If the mock server is not running, the app will render static seed data.
+- The Team Details view opens by clicking a team card.
