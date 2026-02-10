@@ -1,4 +1,3 @@
-import React from 'react'
 import teamProfile from '../assets/design/Team profile.png'
 
 type Props = {

@@ -1,9 +1,8 @@
-import React, { useMemo, useRef, useEffect } from 'react'
+import { useMemo, useRef, useEffect } from 'react'
 import { AgGridReact } from 'ag-grid-react'
 import 'ag-grid-community/styles/ag-grid.css'
 import 'ag-grid-community/styles/ag-theme-alpine.css'
-
-type Team = { id: string; name: string; series: number[]; sharpe?: number; maxDrawdown?: number }
+import type { Team } from '../types'
 
 function computeMetrics(team: Team) {
   const s = team.series || []
@@ -12,28 +11,11 @@ function computeMetrics(team: Team) {
   const last = n ? s[n - 1] : 0
   const realized = last - first
   const pnlPct = first !== 0 ? (realized / Math.abs(first)) * 100 : realized * 100
+  const totalVolume = team.assets
+    ? Object.values(team.assets).reduce((sum, a) => sum + (a.volume || 0), 0)
+    : 0
 
-  if (typeof team.sharpe === 'number' || typeof team.maxDrawdown === 'number') {
-    return {
-      realized,
-      pnlPct,
-      sharpe: team.sharpe,
-      maxDrawdown: team.maxDrawdown,
-    }
-  }
-
-  // compute simple sharpe using daily returns over available series
-  const returns: number[] = []
-  for (let i = 1; i < s.length; i++) {
-    const prev = s[i - 1]
-    if (prev !== 0) returns.push((s[i] - prev) / Math.abs(prev))
-  }
-  const mean = returns.reduce((a, b) => a + b, 0) / Math.max(1, returns.length)
-  const variance = returns.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / Math.max(1, returns.length)
-  const std = Math.sqrt(variance)
-  const sharpe = std === 0 ? 0 : (mean / std) * Math.sqrt(Math.max(1, returns.length))
-
-  return { realized, pnlPct, sharpe }
+  return { realized, pnlPct, sharpe: team.sharpe, maxDrawdown: team.maxDrawdown, totalVolume }
 }
 
 export default function LeaderboardGrid({ teams }: { teams: Team[] }) {
@@ -50,13 +32,11 @@ export default function LeaderboardGrid({ teams }: { teams: Team[] }) {
   const columnApiRef = useRef<any>(null)
   const userResizedRef = useRef<Set<string>>(new Set())
 
-  // when grid is ready, auto-size columns to fit largest content
   function onGridReady(params: any) {
     gridApiRef.current = params.api
     columnApiRef.current = params.columnApi
-    // auto-size after a short tick to ensure rows are rendered
     setTimeout(() => {
-      const allCols = params.columnApi.getAllColumns() || []
+      const allCols = params.columnApi.getColumns() || []
       const allColumnIds = allCols
         .map((c: any) => c.getColId())
         .filter((id: string) => !userResizedRef.current.has(id))
@@ -65,24 +45,22 @@ export default function LeaderboardGrid({ teams }: { teams: Team[] }) {
   }
 
   function onColumnResized(params: any) {
-    // when user finishes a resize, mark that column as user-resized
     if (params && params.finished) {
       const cols = params.columns || (params.column ? [params.column] : [])
       for (const c of cols) {
         try {
           const id = c.getColId ? c.getColId() : c.colId
           if (id) userResizedRef.current.add(id)
-        } catch (e) {
+        } catch {
           // ignore
         }
       }
     }
   }
 
-  // re-auto-size whenever rowData changes
   useEffect(() => {
     if (columnApiRef.current) {
-      const colsAll = columnApiRef.current.getAllColumns() || []
+      const colsAll = columnApiRef.current.getColumns() || []
       const cols = colsAll.map((c: any) => c.getColId()).filter((id: string) => !userResizedRef.current.has(id))
       if (cols.length) columnApiRef.current.autoSizeColumns(cols, false)
     }
@@ -94,7 +72,8 @@ export default function LeaderboardGrid({ teams }: { teams: Team[] }) {
       {
         field: 'realized',
         headerName: 'Realized P&L',
-        valueFormatter: (p: any) => (typeof p.value === 'number' ? (p.value > 0 ? '+' : '') + p.value.toFixed(0) : p.value),
+        valueFormatter: (p: any) =>
+          typeof p.value === 'number' ? (p.value > 0 ? '+' : '') + p.value.toFixed(0) : p.value,
         cellClass: (params: any) => {
           const v = params.value
           if (typeof v === 'number') return v > 0 ? 'cell-positive' : v < 0 ? 'cell-negative' : ''
@@ -106,6 +85,7 @@ export default function LeaderboardGrid({ teams }: { teams: Team[] }) {
       {
         field: 'pnlPct',
         headerName: 'P&L %',
+        sort: 'desc' as const,
         valueFormatter: (p: any) => {
           if (typeof p.value !== 'number') return p.value
           const sign = p.value > 0 ? '+' : ''
@@ -134,6 +114,14 @@ export default function LeaderboardGrid({ teams }: { teams: Team[] }) {
         sortable: true,
         width: 150,
       },
+      {
+        field: 'totalVolume',
+        headerName: 'Total Volume',
+        valueFormatter: (p: any) =>
+          typeof p.value === 'number' ? `$${Math.round(p.value).toLocaleString()}` : p.value,
+        sortable: true,
+        width: 150,
+      },
     ],
     []
   )
@@ -150,7 +138,6 @@ export default function LeaderboardGrid({ teams }: { teams: Team[] }) {
           onGridReady={onGridReady}
           onColumnResized={onColumnResized}
           suppressColumnVirtualisation={true}
-          sortModel={[{ colId: 'pnlPct', sort: 'desc' }]}
         />
       </div>
     </div>

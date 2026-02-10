@@ -1,0 +1,144 @@
+import { useEffect, useState } from 'react'
+import DataProcessor from '../workers/dataProcessor'
+import type { ScoreEntry, SnapshotPayload, Team } from '../types'
+
+const SEED_TEAMS = [
+  { id: 'alpha', name: 'Team Alpha', seed: [100, 120, 80, 150], sharpe: 1.1 },
+  { id: 'beta', name: 'Team Beta', seed: [50, 60, 40, 90], sharpe: 0.6 },
+  { id: 'gamma', name: 'Team Gamma', seed: [200, 180, 210, 190], sharpe: 1.8 },
+]
+
+function computeMaxDrawdown(series: number[]) {
+  if (!series || series.length < 2) return 0
+  let peak = series[0]
+  let maxDD = 0
+  for (const v of series) {
+    peak = Math.max(peak, v)
+    const dd = peak === 0 ? 0 : (peak - v) / peak
+    maxDD = Math.max(maxDD, dd)
+  }
+  return maxDD * 100
+}
+
+function initTeams(): Team[] {
+  return SEED_TEAMS.map((t) => ({
+    id: t.id,
+    name: t.name,
+    historySeries: t.seed,
+    liveSeries: [],
+    series: t.seed,
+    sharpe: t.sharpe,
+    maxDrawdown: computeMaxDrawdown(t.seed),
+    assets: {},
+  }))
+}
+
+function resolveTeamIndex(teams: Team[], entry: ScoreEntry) {
+  if (typeof entry.teamId === 'string') {
+    const idx = teams.findIndex((t) => t.id === entry.teamId)
+    if (idx >= 0) return idx
+  }
+  const key = entry.user || ''
+  return Math.abs(key.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % teams.length
+}
+
+function applyAssetUpdate(team: Team, entry: ScoreEntry) {
+  const asset = typeof entry.asset === 'string' ? entry.asset : 'UNK'
+  const assetPnl = typeof entry.assetPnl === 'number' ? entry.assetPnl : 0
+  const assetVolume = typeof entry.assetVolume === 'number' ? entry.assetVolume : 0
+  const nextAssets = { ...(team.assets || {}) }
+  const prevAsset = nextAssets[asset] || { count: 0, pnl: 0, volume: 0 }
+  nextAssets[asset] = {
+    count: prevAsset.count + 1,
+    pnl: prevAsset.pnl + assetPnl,
+    volume: prevAsset.volume + assetVolume,
+  }
+  return nextAssets
+}
+
+function applyLiveUpdate(team: Team, entry: ScoreEntry): Team {
+  const value = typeof entry.score === 'number' ? entry.score : 0
+  const sharpe = typeof entry.sharpe === 'number' ? entry.sharpe : team.sharpe
+  const liveSeries = [...(team.liveSeries || []), value].slice(-48)
+  const series = [...(team.historySeries || []), ...liveSeries]
+  return {
+    ...team,
+    liveSeries,
+    series,
+    sharpe,
+    maxDrawdown: computeMaxDrawdown(series),
+    assets: applyAssetUpdate(team, entry),
+  }
+}
+
+function applySnapshot(teams: Team[], payload: SnapshotPayload) {
+  const next = teams.map((t) => ({ ...t }))
+  const buckets = new Map<number, ScoreEntry[]>()
+  for (const entry of payload.data || []) {
+    const idx = resolveTeamIndex(next, entry)
+    if (!buckets.has(idx)) buckets.set(idx, [])
+    buckets.get(idx)!.push(entry)
+  }
+  for (const [idx, list] of buckets.entries()) {
+    list.sort((a, b) => (a.ts || 0) - (b.ts || 0))
+    const history = list.map((e) => (typeof e.score === 'number' ? e.score : 0))
+    const lastSharpe = list.length ? list[list.length - 1].sharpe : next[idx].sharpe
+    let assets = { ...(next[idx].assets || {}) }
+    for (const entry of list) {
+      assets = applyAssetUpdate({ ...next[idx], assets }, entry)
+    }
+    next[idx] = {
+      ...next[idx],
+      historySeries: history,
+      liveSeries: [],
+      series: history,
+      sharpe: typeof lastSharpe === 'number' ? lastSharpe : next[idx].sharpe,
+      maxDrawdown: computeMaxDrawdown(history),
+      assets,
+    }
+  }
+  return next
+}
+
+export function useLeaderboard() {
+  const [teams, setTeams] = useState<Team[]>(() => initTeams())
+
+  useEffect(() => {
+    const dp = new DataProcessor()
+
+    const subId = dp.subscribe('scores', (msg) => {
+      if (msg.type === 'update') {
+        setTeams((prev) => {
+          const next = [...prev]
+          const idx = resolveTeamIndex(next, msg.entry)
+          next[idx] = applyLiveUpdate(next[idx], msg.entry)
+          return next
+        })
+      }
+    })
+
+    const ws = new WebSocket('ws://localhost:8080')
+    ws.addEventListener('message', (ev) => {
+      try {
+        const parsed = JSON.parse(ev.data as string)
+        if (parsed && parsed.topic) {
+          if (parsed.type === 'snapshot') {
+            setTeams((prev) => applySnapshot(prev, parsed as SnapshotPayload))
+          } else {
+            dp.ingest(parsed.topic, parsed.data)
+          }
+        }
+      } catch (err) {
+        console.error('invalid ws message', err)
+      }
+    })
+
+    return () => {
+      dp.unsubscribe(subId, 'scores')
+      dp.terminate()
+      ws.close()
+    }
+  }, [])
+
+  return { teams }
+}
