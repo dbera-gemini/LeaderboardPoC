@@ -34,13 +34,40 @@ The client will:
 - treat the snapshot as immutable history,
 - append deltas to the live series.
 
-## Score Calculation
-The app does **not** calculate score. It treats `score` as a time‑series value provided by the server (e.g., cumulative P&L). The UI uses the series to derive:
+## Current P&L (Score) Semantics
+The app does **not** calculate P&L. It treats `score` as **current cumulative P&L** provided by the server (i.e., the team’s P&L value at that timestamp). The UI uses the series to derive:
 - **Realized P&L**: `last(score) - first(score)`
 - **P&L %**: `(realized / |first|) * 100`
 - **Chart**: plots the 24‑hour history plus live deltas
 
-If you want a different scoring model, compute it server‑side and send it as the `score` field.
+If you want a different model, compute it server‑side and send it as `score` (the UI will treat it as the timeline value).
+
+### Example: Current P&L Over Time
+Snapshot (hourly cumulative P&L for a team):
+```json
+{
+  "topic": "scores",
+  "type": "snapshot",
+  "data": [
+    { "user": "Alice", "teamId": "alpha", "score": 100, "ts": 1700000000000 },
+    { "user": "Alice", "teamId": "alpha", "score": 105, "ts": 1700003600000 },
+    { "user": "Alice", "teamId": "alpha", "score": 98,  "ts": 1700007200000 }
+  ]
+}
+```
+
+Live delta update (current P&L now 112):
+```json
+{
+  "topic": "scores",
+  "data": {
+    "user": "Alice",
+    "teamId": "alpha",
+    "score": 112,
+    "ts": 1700010800000
+  }
+}
+```
 
 ### WebSocket Payloads
 All messages are JSON with a `topic` and `data`.
