@@ -233,6 +233,46 @@
 }
 .grid-card .ag-theme-alpine{background:transparent}
 
+/* AG Grid themed styling */
+.ag-theme-alpine .ag-root-wrapper{
+  background:transparent;
+  border:0;
+}
+.ag-theme-alpine .ag-header{
+  background:rgba(15,23,42,0.75);
+  border-bottom:1px solid rgba(148,163,184,0.2);
+}
+.ag-theme-alpine .ag-header-cell{
+  color:#e2e8f0;
+  font-weight:700;
+  letter-spacing:0.4px;
+}
+.ag-theme-alpine .ag-header-cell-label{
+  font-size:12px;
+  text-transform:uppercase;
+  color:rgba(226,232,240,0.85);
+}
+.ag-theme-alpine .ag-header-cell-resize::after{
+  background:rgba(148,163,184,0.3);
+}
+.ag-theme-alpine .ag-row{
+  background:rgba(15,23,42,0.55);
+  color:#e2e8f0;
+  border-bottom:1px solid rgba(148,163,184,0.12);
+}
+.ag-theme-alpine .ag-row.ag-row-odd{
+  background:rgba(10,15,26,0.65);
+}
+.ag-theme-alpine .ag-row:hover{
+  background:rgba(30,41,59,0.7);
+}
+.ag-theme-alpine .ag-cell{
+  border-right:1px solid rgba(148,163,184,0.08);
+}
+.ag-theme-alpine .ag-row:last-child{
+  border-bottom:0;
+}
+
 /* Team details page */
 .team-details{
   padding:20px;
@@ -303,6 +343,24 @@
   border-radius:16px;
   background:rgba(15,23,42,0.6);
   border:1px solid rgba(148,163,184,0.16);
+}
+.team-details-chart-header{
+  display:flex;
+  align-items:baseline;
+  justify-content:flex-start;
+  margin-bottom:8px;
+}
+.team-details-chart-value{
+  font-size:18px;
+  font-weight:700;
+  color:#e2e8f0;
+}
+.team-details-chart-value.pos{color:#34d399}
+.team-details-chart-value.neg{color:#fca5a5}
+.team-details-chart-pct{
+  margin-left:8px;
+  font-size:12px;
+  color:rgba(226,232,240,0.7);
 }
 .team-details-chart-shell{
   display:flex;

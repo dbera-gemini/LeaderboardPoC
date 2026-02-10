@@ -34,11 +34,16 @@ function App() {
     }
     return maxDD * 100
   }
-  const [teams, setTeams] = useState(() => [
-    { id: 'alpha', name: 'Team Alpha', series: [100, 120, 80, 150], sharpe: 1.1, maxDrawdown: computeMaxDrawdown([100, 120, 80, 150]), assets: {} as Record<string, { count: number; pnl: number; volume: number }> },
-    { id: 'beta', name: 'Team Beta', series: [50, 60, 40, 90], sharpe: 0.6, maxDrawdown: computeMaxDrawdown([50, 60, 40, 90]), assets: {} as Record<string, { count: number; pnl: number; volume: number }> },
-    { id: 'gamma', name: 'Team Gamma', series: [200, 180, 210, 190], sharpe: 1.8, maxDrawdown: computeMaxDrawdown([200, 180, 210, 190]), assets: {} as Record<string, { count: number; pnl: number; volume: number }> },
-  ])
+  const [teams, setTeams] = useState(() => {
+    const seedA = [100, 120, 80, 150]
+    const seedB = [50, 60, 40, 90]
+    const seedC = [200, 180, 210, 190]
+    return [
+      { id: 'alpha', name: 'Team Alpha', historySeries: seedA, liveSeries: [] as number[], series: seedA, sharpe: 1.1, maxDrawdown: computeMaxDrawdown(seedA), assets: {} as Record<string, { count: number; pnl: number; volume: number }> },
+      { id: 'beta', name: 'Team Beta', historySeries: seedB, liveSeries: [] as number[], series: seedB, sharpe: 0.6, maxDrawdown: computeMaxDrawdown(seedB), assets: {} as Record<string, { count: number; pnl: number; volume: number }> },
+      { id: 'gamma', name: 'Team Gamma', historySeries: seedC, liveSeries: [] as number[], series: seedC, sharpe: 1.8, maxDrawdown: computeMaxDrawdown(seedC), assets: {} as Record<string, { count: number; pnl: number; volume: number }> },
+    ]
+  })
 
   useEffect(() => {
     const dp = new DataProcessor()
@@ -63,7 +68,6 @@ function App() {
           const idx = Math.abs(key.split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0)) % next.length
           const value = typeof msg.entry.score === 'number' ? msg.entry.score : Math.floor(Math.random() * 200)
           const sharpe = typeof msg.entry.sharpe === 'number' ? msg.entry.sharpe : next[idx].sharpe
-          const series = [...next[idx].series.slice(-49), value]
           const asset = typeof msg.entry.asset === 'string' ? msg.entry.asset : 'UNK'
           const assetPnl = typeof msg.entry.assetPnl === 'number' ? msg.entry.assetPnl : 0
           const assetVolume = typeof msg.entry.assetVolume === 'number' ? msg.entry.assetVolume : 0
@@ -74,7 +78,11 @@ function App() {
             pnl: prevAsset.pnl + assetPnl,
             volume: prevAsset.volume + assetVolume,
           }
+          const live = [...(next[idx].liveSeries || []), value].slice(-48)
+          const history = next[idx].historySeries || []
+          const series = [...history, ...live]
           next[idx].series = series
+          next[idx].liveSeries = live
           next[idx].sharpe = sharpe
           next[idx].maxDrawdown = computeMaxDrawdown(series)
           next[idx].assets = nextAssets
@@ -92,7 +100,41 @@ function App() {
         // forward to worker
         if (parsed && parsed.topic) {
           if (parsed.type === 'snapshot') {
-            for (const entry of parsed.data || []) dp.ingest(parsed.topic, entry)
+            const entries = parsed.data || []
+            setTeams((prev) => {
+              const next = prev.map((t) => ({ ...t }))
+              const buckets = new Map<number, { ts: number; score: number; sharpe?: number; asset?: string; assetPnl?: number; assetVolume?: number }[]>()
+              for (const entry of entries) {
+                const key = entry.user || ''
+                const idx = Math.abs(key.split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0)) % next.length
+                if (!buckets.has(idx)) buckets.set(idx, [])
+                buckets.get(idx)!.push(entry)
+              }
+              for (const [idx, list] of buckets.entries()) {
+                list.sort((a, b) => (a.ts || 0) - (b.ts || 0))
+                const history = list.map((e) => (typeof e.score === 'number' ? e.score : 0))
+                const lastSharpe = list.length ? list[list.length - 1].sharpe : next[idx].sharpe
+                const nextAssets = { ...(next[idx].assets || {}) }
+                for (const entry of list) {
+                  const asset = typeof entry.asset === 'string' ? entry.asset : 'UNK'
+                  const assetPnl = typeof entry.assetPnl === 'number' ? entry.assetPnl : 0
+                  const assetVolume = typeof entry.assetVolume === 'number' ? entry.assetVolume : 0
+                  const prevAsset = nextAssets[asset] || { count: 0, pnl: 0, volume: 0 }
+                  nextAssets[asset] = {
+                    count: prevAsset.count + 1,
+                    pnl: prevAsset.pnl + assetPnl,
+                    volume: prevAsset.volume + assetVolume,
+                  }
+                }
+                next[idx].historySeries = history
+                next[idx].liveSeries = []
+                next[idx].series = history
+                next[idx].sharpe = typeof lastSharpe === 'number' ? lastSharpe : next[idx].sharpe
+                next[idx].maxDrawdown = computeMaxDrawdown(history)
+                next[idx].assets = nextAssets
+              }
+              return next
+            })
           } else {
             dp.ingest(parsed.topic, parsed.data)
           }
@@ -127,6 +169,8 @@ function App() {
         <TeamDetails
           name={selectedTeam.name}
           series={selectedTeam.series}
+          historySeries={selectedTeam.historySeries}
+          liveSeries={selectedTeam.liveSeries}
           sharpe={selectedTeam.sharpe}
           maxDrawdown={selectedTeam.maxDrawdown}
           assets={selectedTeam.assets}

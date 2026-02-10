@@ -3,6 +3,8 @@ import React, { useMemo } from 'react'
 type Props = {
   name: string
   series: number[]
+  historySeries?: number[]
+  liveSeries?: number[]
   sharpe?: number
   maxDrawdown?: number
   assets?: Record<string, { count: number; pnl: number; volume: number }>
@@ -125,6 +127,8 @@ function Sparkline({
 export default function TeamDetails({
   name,
   series,
+  historySeries = [],
+  liveSeries = [],
   sharpe,
   maxDrawdown,
   assets = {},
@@ -132,23 +136,28 @@ export default function TeamDetails({
   logoSrc = 'src/assets/design/team-logo.png',
   onBack,
 }: Props) {
-  const lastN = useMemo(() => series.slice(-48), [series])
+  const fullSeries = useMemo(() => {
+    if (historySeries.length) return [...historySeries, ...liveSeries]
+    return series
+  }, [historySeries, liveSeries, series])
   const cumulative = useMemo(() => {
-    if (!lastN.length) return []
-    const base = lastN[0]
-    return lastN.map((v) => v - base)
-  }, [lastN])
-  const last = series?.length ? series[series.length - 1] : 0
-  const first = series?.length ? series[0] : 0
+    if (!fullSeries.length) return []
+    const base = fullSeries[0]
+    return fullSeries.map((v) => v - base)
+  }, [fullSeries])
+  const totalPnl = fullSeries.length ? fullSeries[fullSeries.length - 1] - fullSeries[0] : 0
+  const totalPnlPct = fullSeries.length && fullSeries[0] !== 0 ? (totalPnl / Math.abs(fullSeries[0])) * 100 : 0
+  const last = fullSeries?.length ? fullSeries[fullSeries.length - 1] : 0
+  const first = fullSeries?.length ? fullSeries[0] : 0
   const pnl = last - first
   const winRate = useMemo(() => {
-    if (!series || series.length < 2) return 0
+    if (!fullSeries || fullSeries.length < 2) return 0
     let wins = 0
-    for (let i = 1; i < series.length; i++) {
-      if (series[i] > series[i - 1]) wins++
+    for (let i = 1; i < fullSeries.length; i++) {
+      if (fullSeries[i] > fullSeries[i - 1]) wins++
     }
-    return (wins / Math.max(1, series.length - 1)) * 100
-  }, [series])
+    return (wins / Math.max(1, fullSeries.length - 1)) * 100
+  }, [fullSeries])
 
   const assetEntries = useMemo(() => {
     const entries = Object.entries(assets)
@@ -177,6 +186,12 @@ export default function TeamDetails({
 
       <div className="team-details-main">
         <div className="team-details-chart-wrap">
+          <div className="team-details-chart-header">
+            <div className={`team-details-chart-value ${totalPnl < 0 ? 'neg' : 'pos'}`}>
+              {totalPnl < 0 ? '-' : '+'}${Math.abs(totalPnl).toFixed(0)}
+              <span className="team-details-chart-pct">({totalPnlPct >= 0 ? '+' : ''}{totalPnlPct.toFixed(2)}%)</span>
+            </div>
+          </div>
           <Sparkline data={cumulative} color={color} height={273} showRightAxis />
           <div className="team-details-times">
             <span>24h</span>
