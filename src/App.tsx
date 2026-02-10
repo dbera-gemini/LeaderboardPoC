@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import './leaderboard.css'
 
@@ -18,6 +18,42 @@ function App() {
   const { teams } = useLeaderboard()
 
   const selectedTeam = selectedTeamId ? teams.find((t) => t.id === selectedTeamId) : null
+  const teamsRef = useRef(teams)
+  const [topTeamIds, setTopTeamIds] = useState<string[]>(() => teams.slice(0, 3).map((t) => t.id))
+  const [leaderFlash, setLeaderFlash] = useState(false)
+  const prevLeaderRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    teamsRef.current = teams
+  }, [teams])
+
+  useEffect(() => {
+    const computeTop = () => {
+      const snapshot = [...teamsRef.current]
+      snapshot.sort((a, b) => {
+        const aPnl = (a.series.at(-1) ?? 0) - (a.series[0] ?? 0)
+        const bPnl = (b.series.at(-1) ?? 0) - (b.series[0] ?? 0)
+        return bPnl - aPnl
+      })
+      const nextIds = snapshot.slice(0, 3).map((t) => t.id)
+      setTopTeamIds(nextIds)
+      const nextLeader = nextIds[0] ?? null
+      if (nextLeader && nextLeader !== prevLeaderRef.current) {
+        prevLeaderRef.current = nextLeader
+        setLeaderFlash(true)
+        window.setTimeout(() => setLeaderFlash(false), 1200)
+      }
+    }
+
+    computeTop()
+    const interval = window.setInterval(computeTop, 30_000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const topTeams = useMemo(() => {
+    const map = new Map(teams.map((t) => [t.id, t]))
+    return topTeamIds.map((id) => map.get(id)).filter(Boolean) as typeof teams
+  }, [teams, topTeamIds])
 
   return (
     <div className="App page-container">
@@ -46,9 +82,10 @@ function App() {
       ) : (
         <section className="card lb-area">
           <div className="team-cards">
-            {teams.slice(0, 3).map((team, idx) => {
+            {topTeams.map((team, idx) => {
               const color = idx === 0 ? '#34d399' : idx === 1 ? '#60a5fa' : '#f59e0b'
               const logoSrc = idx === 0 ? teamALogo : idx === 1 ? teamBLogo : teamGLogo
+              const isLeader = idx === 0
               return (
                 <TeamCard
                   key={team.id}
@@ -58,6 +95,7 @@ function App() {
                   maxDrawdown={team.maxDrawdown}
                   color={color}
                   logoSrc={logoSrc}
+                  className={isLeader ? `team-card-leader ${leaderFlash ? 'team-card-leader-flash' : ''}` : undefined}
                   onClick={() => setSelectedTeamId(team.id)}
                 />
               )

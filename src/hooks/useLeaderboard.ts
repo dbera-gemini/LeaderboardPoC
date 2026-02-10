@@ -6,6 +6,13 @@ const SEED_TEAMS = [
   { id: 'alpha', name: 'Team Alpha', seed: [100, 120, 80, 150], sharpe: 1.1 },
   { id: 'beta', name: 'Team Beta', seed: [50, 60, 40, 90], sharpe: 0.6 },
   { id: 'gamma', name: 'Team Gamma', seed: [200, 180, 210, 190], sharpe: 1.8 },
+  { id: 'delta', name: 'Team Delta', seed: [130, 140, 125, 155], sharpe: 0.9 },
+  { id: 'epsilon', name: 'Team Epsilon', seed: [80, 95, 70, 110], sharpe: 0.7 },
+  { id: 'zeta', name: 'Team Zeta', seed: [160, 150, 170, 165], sharpe: 1.3 },
+  { id: 'eta', name: 'Team Eta', seed: [90, 100, 85, 120], sharpe: 0.8 },
+  { id: 'theta', name: 'Team Theta', seed: [210, 205, 215, 225], sharpe: 1.6 },
+  { id: 'iota', name: 'Team Iota', seed: [60, 75, 65, 95], sharpe: 0.5 },
+  { id: 'kappa', name: 'Team Kappa', seed: [140, 135, 150, 160], sharpe: 1.0 },
 ]
 
 function computeMaxDrawdown(series: number[]) {

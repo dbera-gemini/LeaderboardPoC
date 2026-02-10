@@ -9,6 +9,7 @@ type Props = {
   color?: string;
   logoSrc?: string;
   onClick?: () => void;
+  className?: string;
 };
 
 function Sparkline({
@@ -95,6 +96,7 @@ export default function TeamCard({
   color = "#60a5fa",
   logoSrc = "src/assets/design/team-logo.png",
   onClick,
+  className,
 }: Props) {
   const last = series?.length ? series[series.length - 1] : 0;
   const pnl = typeof realizedPnl === "number" ? realizedPnl : last;
@@ -113,7 +115,7 @@ export default function TeamCard({
     lastN.length > 1 ? Math.max(...lastN) - Math.min(...lastN) : 0;
 
   return (
-    <button type="button" className="team-card team-card-button" onClick={onClick}>
+    <button type="button" className={`team-card team-card-button ${className ?? ""}`} onClick={onClick}>
       <div className="team-card-inner">
         <div className="team-card-top">
           <div className="team-card-identity">
