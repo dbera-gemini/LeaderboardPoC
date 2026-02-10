@@ -280,11 +280,11 @@
   align-items:flex-start;
   flex-wrap:wrap;
 }
-.team-details-kpis{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:10px;
-  flex:1 1 320px;
+.team-details-stats{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  flex:1 1 240px;
 }
 .team-details-kpi{
   padding:12px;
@@ -304,7 +304,22 @@
   background:rgba(15,23,42,0.6);
   border:1px solid rgba(148,163,184,0.16);
 }
+.team-details-chart-shell{
+  display:flex;
+  align-items:stretch;
+  gap:10px;
+}
 .team-details-chart{width:100%;height:auto;display:block}
+.team-details-axis{
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  font-size:11px;
+  color:rgba(148,163,184,0.8);
+  min-width:64px;
+  text-align:right;
+}
+.team-details-axis-label{white-space:nowrap}
 .team-details-heatmap{
   margin-top:18px;
   padding:14px;
