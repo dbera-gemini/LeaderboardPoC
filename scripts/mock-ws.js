@@ -33,7 +33,7 @@ wss.on('connection', (ws) => {
   console.log('client connected')
   const interval = setInterval(() => {
     if (ws.readyState === WebSocket.OPEN) sendRandomScore(ws)
-  }, 1000)
+  }, 250)
 
   ws.on('message', (msg) => {
     console.log('received from client:', String(msg))
