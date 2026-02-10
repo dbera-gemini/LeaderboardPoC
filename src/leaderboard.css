@@ -88,6 +88,16 @@
   font-family:"Space Grotesk","Sora","Plus Jakarta Sans",ui-sans-serif,system-ui;
   transition:transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
 }
+.team-card-button{
+  cursor:pointer;
+  text-align:left;
+  border:1px solid rgba(148,163,184,0.18);
+  background:transparent;
+}
+.team-card-button:focus-visible{
+  outline:2px solid rgba(94,234,212,0.9);
+  outline-offset:2px;
+}
 .team-card::after{
   content:"";
   position:absolute;
@@ -222,6 +232,112 @@
   backdrop-filter:blur(12px);
 }
 .grid-card .ag-theme-alpine{background:transparent}
+
+/* Team details page */
+.team-details{
+  padding:20px;
+  border-radius:24px;
+  border:1px solid rgba(148,163,184,0.2);
+  background:rgba(10,15,26,0.6);
+  box-shadow:0 24px 60px rgba(2,6,23,0.5);
+}
+.team-details-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:18px;
+}
+.team-details-back{
+  padding:8px 12px;
+  border-radius:12px;
+  border:1px solid rgba(148,163,184,0.25);
+  background:rgba(15,23,42,0.7);
+  color:#e2e8f0;
+  font-weight:600;
+}
+.team-details-identity{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.team-details-logo{
+  width:54px;
+  height:54px;
+  border-radius:14px;
+  background:linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.02));
+  border:1px solid rgba(255,255,255,0.18);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.team-details-logo img{width:40px;height:40px;object-fit:contain}
+.team-details-name{font-size:20px;font-weight:700;color:#f8fafc}
+.team-details-subtitle{font-size:12px;color:rgba(226,232,240,0.7)}
+.team-details-main{
+  display:flex;
+  gap:18px;
+  align-items:flex-start;
+  flex-wrap:wrap;
+}
+.team-details-kpis{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  flex:1 1 320px;
+}
+.team-details-kpi{
+  padding:12px;
+  border-radius:14px;
+  background:rgba(15,23,42,0.6);
+  border:1px solid rgba(148,163,184,0.16);
+}
+.team-details-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:rgba(148,163,184,0.75)}
+.team-details-value{font-size:20px;font-weight:700;margin-top:6px;color:#e2e8f0}
+.team-details-value.pos{color:#34d399}
+.team-details-value.neg{color:#fca5a5}
+.team-details-mini{margin-top:4px;font-size:10px;color:rgba(148,163,184,0.7)}
+.team-details-chart-wrap{
+  flex:2 1 520px;
+  padding:12px;
+  border-radius:16px;
+  background:rgba(15,23,42,0.6);
+  border:1px solid rgba(148,163,184,0.16);
+}
+.team-details-chart{width:100%;height:auto;display:block}
+.team-details-heatmap{
+  margin-top:18px;
+  padding:14px;
+  border-radius:16px;
+  background:rgba(15,23,42,0.55);
+  border:1px solid rgba(148,163,184,0.16);
+}
+.team-details-heatmap-title{
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  color:rgba(148,163,184,0.8);
+  margin-bottom:10px;
+}
+.team-details-heatmap-grid{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+}
+.team-details-heatmap-bubble{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  border-radius:12px;
+  border:1px solid rgba(94,234,212,0.35);
+  color:#e2e8f0;
+  font-weight:700;
+}
+.team-details-heatmap-asset{font-size:11px;letter-spacing:0.6px}
+.team-details-heatmap-count{font-size:10px;color:rgba(226,232,240,0.75)}
+.team-details-heatmap-empty{font-size:12px;color:rgba(148,163,184,0.7)}
 
 /* Add a bit of vertical spacing between team cards area and the grid */
 .team-cards + .grid-card{margin-top:18px}
