@@ -64,8 +64,15 @@ function App() {
         // map incoming entry to a team (simple hash by name) and update team series
         setTeams((prev) => {
           const next = prev.map((t) => ({ ...t }))
-          const key = msg.entry.user || ''
-          const idx = Math.abs(key.split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0)) % next.length
+          const teamId = msg.entry.teamId
+          let idx = -1
+          if (typeof teamId === 'string') {
+            idx = next.findIndex((t) => t.id === teamId)
+          }
+          if (idx < 0) {
+            const key = msg.entry.user || ''
+            idx = Math.abs(key.split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0)) % next.length
+          }
           const value = typeof msg.entry.score === 'number' ? msg.entry.score : Math.floor(Math.random() * 200)
           const sharpe = typeof msg.entry.sharpe === 'number' ? msg.entry.sharpe : next[idx].sharpe
           const asset = typeof msg.entry.asset === 'string' ? msg.entry.asset : 'UNK'

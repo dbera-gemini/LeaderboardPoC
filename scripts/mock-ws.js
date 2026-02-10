@@ -12,12 +12,20 @@ console.log(`Mock WebSocket server listening on ws://localhost:${PORT}`)
 
 function sendRandomScore(ws) {
   const assets = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'AVAX', 'DOT', 'LINK', 'DOGE', 'MATIC']
+  const teams = [
+    { id: 'alpha', user: 'Alice' },
+    { id: 'beta', user: 'Bob' },
+    { id: 'gamma', user: 'Carol' },
+    { id: 'delta', user: 'Dave' },
+  ]
+  const pick = teams[Math.floor(Math.random() * teams.length)]
   const assetPnl = Number(((Math.random() - 0.48) * 200).toFixed(2))
   const assetVolume = Number((Math.random() * 15000 + 500).toFixed(2))
   const payload = {
     topic: 'scores',
     data: {
-      user: ['Alice', 'Bob', 'Carol', 'Dave'][Math.floor(Math.random() * 4)],
+      user: pick.user,
+      teamId: pick.id,
       score: Math.floor(Math.random() * 1000),
       sharpe: Number((Math.random() * 4 - 1).toFixed(2)),
       asset: assets[Math.floor(Math.random() * assets.length)],

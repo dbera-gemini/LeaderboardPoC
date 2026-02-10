@@ -11,7 +11,7 @@ This app renders a live trading leaderboard with team cards, an AG Grid table, a
 
 ### Snapshot + Continuous Stream Logic
 The mock server sends:
-- **Snapshot**: a 24‑hour historical series per user on connect.
+- **Snapshot**: a 24‑hour historical series per team on connect (**24 points per team**, typically spaced 1 hour apart).
 - **Continuous stream**: new deltas after the snapshot.
 
 In the app:
@@ -24,7 +24,7 @@ In the app:
 ### WebSocket Payloads
 All messages are JSON with a `topic` and `data`.
 
-#### Snapshot message
+#### Snapshot message (24 points per team)
 ```json
 {
   "topic": "scores",
@@ -32,6 +32,7 @@ All messages are JSON with a `topic` and `data`.
   "data": [
     {
       "user": "Alice",
+      "teamId": "alpha",
       "score": 532,
       "sharpe": 1.12,
       "asset": "BTC",
@@ -43,12 +44,18 @@ All messages are JSON with a `topic` and `data`.
 }
 ```
 
-#### Update message
+**Snapshot requirements**
+- Send **24 data points per team**.
+- Each point should include a **timestamp (`ts`)** spaced **1 hour apart** (or your chosen cadence).
+- Points should be ordered by time or include valid timestamps so the client can sort.
+
+#### Delta/update message (continuous stream)
 ```json
 {
   "topic": "scores",
   "data": {
     "user": "Alice",
+    "teamId": "alpha",
     "score": 540,
     "sharpe": 1.08,
     "asset": "ETH",
