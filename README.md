@@ -21,6 +21,19 @@ In the app:
 
 ## API + Data Structures
 
+### API Instructions (Mock Server Contract)
+- **Protocol**: WebSocket
+- **Endpoint**: `ws://localhost:8080`
+- **Topic**: `scores`
+- **Handshake behavior**: on connect, send a **snapshot** (24 points per team), then stream **deltas** continuously.
+- **Required fields**: `teamId`, `user`, `score`, `ts`
+- **Recommended fields**: `sharpe`, `asset`, `assetPnl`, `assetVolume`
+
+The client will:
+- use `teamId` to route updates to the correct team,
+- treat the snapshot as immutable history,
+- append deltas to the live series.
+
 ### WebSocket Payloads
 All messages are JSON with a `topic` and `data`.
 
