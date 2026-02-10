@@ -124,7 +124,12 @@ export function useLeaderboard() {
       }
     })
 
-    const ws = new WebSocket('ws://localhost:8080')
+    const ws = new WebSocket('ws://localhost:9000/ws/competition')
+    ws.addEventListener('open', () => {
+      console.log('ws open')
+      // Send subscription message
+      ws.send(JSON.stringify({ type: 'subscribe_team_metrics', requestId: 'req_001' }))
+    })
     ws.addEventListener('message', (ev) => {
       try {
         const parsed = JSON.parse(ev.data as string)
