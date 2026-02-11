@@ -21,6 +21,7 @@ function App() {
   const teamsRef = useRef(teams)
   const [topTeamIds, setTopTeamIds] = useState<string[]>(() => teams.slice(0, 3).map((t) => t.id))
   const [leaderFlash, setLeaderFlash] = useState(false)
+  const [topFlash, setTopFlash] = useState(false)
   const prevLeaderRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -37,6 +38,8 @@ function App() {
       })
       const nextIds = snapshot.slice(0, 3).map((t) => t.id)
       setTopTeamIds(nextIds)
+      setTopFlash(true)
+      window.setTimeout(() => setTopFlash(false), 1200)
       const nextLeader = nextIds[0] ?? null
       if (nextLeader && nextLeader !== prevLeaderRef.current) {
         prevLeaderRef.current = nextLeader
@@ -46,7 +49,7 @@ function App() {
     }
 
     computeTop()
-    const interval = window.setInterval(computeTop, 30_000)
+    const interval = window.setInterval(computeTop, 5_000)
     return () => clearInterval(interval)
   }, [])
 
@@ -95,7 +98,8 @@ function App() {
                   maxDrawdown={team.maxDrawdown}
                   color={color}
                   logoSrc={logoSrc}
-                  className={isLeader ? `team-card-leader ${leaderFlash ? 'team-card-leader-flash' : ''}` : undefined}
+                  rank={idx + 1}
+                  className={`${topFlash ? 'team-card-leader-flash' : ''} ${isLeader ? `team-card-leader ${leaderFlash ? 'team-card-leader-flash' : ''}` : ''}`.trim()}
                   onClick={() => setSelectedTeamId(team.id)}
                 />
               )

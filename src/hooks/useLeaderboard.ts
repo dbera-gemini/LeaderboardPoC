@@ -112,15 +112,24 @@ export function useLeaderboard() {
 
   useEffect(() => {
     const dp = new DataProcessor()
+    const pending: ScoreEntry[] = []
+    let flushTimer: number | null = null
+
+    const flush = () => {
+      if (!pending.length) return
+      setTeams((prev) => {
+        const next = [...prev]
+        for (const entry of pending.splice(0, pending.length)) {
+          const idx = resolveTeamIndex(next, entry)
+          next[idx] = applyLiveUpdate(next[idx], entry)
+        }
+        return next
+      })
+    }
 
     const subId = dp.subscribe('scores', (msg) => {
       if (msg.type === 'update') {
-        setTeams((prev) => {
-          const next = [...prev]
-          const idx = resolveTeamIndex(next, msg.entry)
-          next[idx] = applyLiveUpdate(next[idx], msg.entry)
-          return next
-        })
+        pending.push(msg.entry)
       }
     })
 
@@ -140,10 +149,17 @@ export function useLeaderboard() {
       }
     })
 
+    const frameLoop = () => {
+      flush()
+      flushTimer = window.requestAnimationFrame(frameLoop)
+    }
+    flushTimer = window.requestAnimationFrame(frameLoop)
+
     return () => {
       dp.unsubscribe(subId, 'scores')
       dp.terminate()
       ws.close()
+      if (flushTimer != null) cancelAnimationFrame(flushTimer)
     }
   }, [])
 

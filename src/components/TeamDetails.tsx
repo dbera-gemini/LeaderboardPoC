@@ -140,11 +140,12 @@ export default function TeamDetails({
     if (historySeries.length) return [...historySeries, ...liveSeries]
     return series
   }, [historySeries, liveSeries, series])
+  const chartSeries = useMemo(() => fullSeries.slice(-48), [fullSeries])
   const cumulative = useMemo(() => {
-    if (!fullSeries.length) return []
-    const base = fullSeries[0]
-    return fullSeries.map((v) => v - base)
-  }, [fullSeries])
+    if (!chartSeries.length) return []
+    const base = chartSeries[0]
+    return chartSeries.map((v) => v - base)
+  }, [chartSeries])
   const totalPnl = fullSeries.length ? fullSeries[fullSeries.length - 1] - fullSeries[0] : 0
   const totalPnlPct = fullSeries.length && fullSeries[0] !== 0 ? (totalPnl / Math.abs(fullSeries[0])) * 100 : 0
   const last = fullSeries?.length ? fullSeries[fullSeries.length - 1] : 0

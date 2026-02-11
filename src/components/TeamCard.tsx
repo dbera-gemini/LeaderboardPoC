@@ -10,6 +10,7 @@ type Props = {
   logoSrc?: string;
   onClick?: () => void;
   className?: string;
+  rank?: number;
 };
 
 function Sparkline({
@@ -97,6 +98,7 @@ export default function TeamCard({
   logoSrc = "src/assets/design/team-logo.png",
   onClick,
   className,
+  rank,
 }: Props) {
   const last = series?.length ? series[series.length - 1] : 0;
   const pnl = typeof realizedPnl === "number" ? realizedPnl : last;
@@ -128,6 +130,11 @@ export default function TeamCard({
             </div>
           </div>
           <div className="team-card-top-right">
+            {typeof rank === "number" && (
+              <div className={`team-card-rank rank-${rank}`}>
+                #{rank}
+              </div>
+            )}
             <div className="team-card-pnl">
               <div className="team-card-label">Net P&amp;L</div>
               <div className={`team-card-value ${pnl < 0 ? "neg" : "pos"}`}>

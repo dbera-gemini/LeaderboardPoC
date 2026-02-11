@@ -65,7 +65,7 @@ wss.on('connection', (ws) => {
   sendSnapshot(ws)
   const interval = setInterval(() => {
     if (ws.readyState === WebSocket.OPEN) sendRandomScore(ws)
-  }, 500)
+  }, 200)
 
   ws.on('message', (msg) => {
     console.log('received from client:', String(msg))
