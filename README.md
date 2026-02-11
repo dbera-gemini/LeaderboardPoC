@@ -93,8 +93,10 @@ All messages are JSON with a `topic` and `data`.
 ```
 
 **Snapshot requirements**
-- Send **24 data points per team**.
-- Each point should include a **timestamp (`ts`)** spaced **1 hour apart** (or your chosen cadence).
+- Send **24 data points per team** for **1D** (hourly).
+- Send **7 data points per team** for **1W** (daily).
+- Send **30 data points per team** for **1M** (daily).
+- Each point should include a **timestamp (`ts`)** spaced to match the range.
 - Points should be ordered by time or include valid timestamps so the client can sort.
 
 #### Delta/update message (continuous stream)
