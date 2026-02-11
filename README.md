@@ -118,7 +118,7 @@ All messages are JSON with a `topic` and `data`.
 ```
 
 **Snapshot requirements**
-- Send **24 data points per team** for **1D** (hourly).
+- Send **24 data points per team** for **1D** (hourly, representing **23h → now**).
 - Send **7 data points per team** for **1W** (daily).
 - Send **30 data points per team** for **1M** (daily).
 - Each point should include a **timestamp (`ts`)** spaced to match the range.

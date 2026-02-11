@@ -10,6 +10,7 @@ type Props = {
   sharpe?: number
   maxDrawdown?: number
   assets?: Record<string, { count: number; pnl: number; volume: number }>
+  assetsByRange?: Record<'1D' | '1W' | '1M', Record<string, { count: number; pnl: number; volume: number }>>
   color?: string
   logoSrc?: string
   onBack?: () => void
@@ -166,6 +167,7 @@ export default function TeamDetails({
   sharpe,
   maxDrawdown,
   assets = {},
+  assetsByRange,
   color = '#60a5fa',
   logoSrc = 'src/assets/design/team-logo.png',
   onBack,
@@ -199,11 +201,16 @@ export default function TeamDetails({
     return (wins / Math.max(1, fullSeries.length - 1)) * 100
   }, [fullSeries])
 
+  const activeAssets = useMemo(() => {
+    if (range === '1D') return assets
+    return assetsByRange?.[range] ?? assets
+  }, [assets, assetsByRange, range])
+
   const assetEntries = useMemo(() => {
-    const entries = Object.entries(assets)
+    const entries = Object.entries(activeAssets)
     entries.sort((a, b) => b[1].volume - a[1].volume)
     return entries.slice(0, 12)
-  }, [assets])
+  }, [activeAssets])
   const maxVolume = assetEntries.reduce((m, [, v]) => Math.max(m, v.volume), 1)
   const maxPnl = assetEntries.reduce((m, [, v]) => Math.max(m, Math.abs(v.pnl)), 1)
 
@@ -455,6 +462,9 @@ export default function TeamDetails({
                   <div className="team-details-heatmap-asset">{asset}</div>
                   <div className="team-details-heatmap-count">
                     ${Math.round(stats.volume).toLocaleString()}
+                  </div>
+                  <div className={`team-details-heatmap-pnl ${isNeg ? 'neg' : 'pos'}`}>
+                    {isNeg ? '-' : '+'}${Math.abs(stats.pnl).toFixed(0)}
                   </div>
                 </div>
               )

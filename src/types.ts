@@ -16,6 +16,7 @@ export type Team = {
   maxDrawdown?: number
   riskPerTrade?: number
   assets: Record<string, AssetStats>
+  assetsByRange: Record<'1D' | '1W' | '1M', Record<string, AssetStats>>
 }
 
 export type ScoreEntry = {

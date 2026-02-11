@@ -38,6 +38,7 @@ function initTeams(): Team[] {
     sharpe: t.sharpe,
     maxDrawdown: computeMaxDrawdown(t.seed),
     assets: {},
+    assetsByRange: { '1D': {}, '1W': {}, '1M': {} },
   }))
 }
 
@@ -119,6 +120,7 @@ function applySnapshot(teams: Team[], payload: SnapshotPayload) {
 
 function applyAssetSnapshot(teams: Team[], payload: AssetSnapshotPayload) {
   const next = teams.map((t) => ({ ...t }))
+  const range = payload.range ?? '1D'
   const buckets = new Map<number, AssetEntry[]>()
   for (const entry of payload.data || []) {
     const idx = resolveTeamIndex(next, entry)
@@ -126,11 +128,17 @@ function applyAssetSnapshot(teams: Team[], payload: AssetSnapshotPayload) {
     buckets.get(idx)!.push(entry)
   }
   for (const [idx, list] of buckets.entries()) {
-    let assets = { ...(next[idx].assets || {}) }
+    let assets = {}
     for (const entry of list) {
       assets = applyAssetUpdate({ ...next[idx], assets }, entry)
     }
-    next[idx] = { ...next[idx], assets }
+    const assetsByRange = { ...(next[idx].assetsByRange || {}) }
+    assetsByRange[range] = assets
+    next[idx] = {
+      ...next[idx],
+      assets: range === '1D' ? assets : next[idx].assets,
+      assetsByRange,
+    }
   }
   return next
 }
@@ -165,7 +173,12 @@ export function useLeaderboard() {
         setTeams((prev) => {
           const next = [...prev]
           const idx = resolveTeamIndex(next, msg.entry as AssetEntry)
-          next[idx] = { ...next[idx], assets: applyAssetUpdate(next[idx], msg.entry as AssetEntry) }
+          const assets = applyAssetUpdate(next[idx], msg.entry as AssetEntry)
+          next[idx] = {
+            ...next[idx],
+            assets,
+            assetsByRange: { ...(next[idx].assetsByRange || {}), '1D': assets },
+          }
           return next
         })
       }
