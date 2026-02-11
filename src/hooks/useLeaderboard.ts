@@ -93,8 +93,10 @@ function applySnapshot(teams: Team[], payload: SnapshotPayload) {
     const history = list.map((e) => (typeof e.score === 'number' ? e.score : 0))
     const lastSharpe = list.length ? list[list.length - 1].sharpe : next[idx].sharpe
     let assets = { ...(next[idx].assets || {}) }
-    for (const entry of list) {
-      assets = applyAssetUpdate({ ...next[idx], assets }, entry)
+    if (range === '1D') {
+      for (const entry of list) {
+        assets = applyAssetUpdate({ ...next[idx], assets }, entry)
+      }
     }
     next[idx] = {
       ...next[idx],
