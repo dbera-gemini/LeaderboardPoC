@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import gemiLogo from '../assets/design/gemi.png'
 
 type Props = {
   name: string
@@ -170,6 +171,7 @@ export default function TeamDetails({
   onBack,
 }: Props) {
   const [range, setRange] = useState<'1D' | '1W' | '1M'>('1D')
+  const [showPnlCard, setShowPnlCard] = useState(false)
   const fullSeries = useMemo(() => {
     if (range !== '1D') {
       return historyByRange?.[range] ?? historySeries ?? series
@@ -204,6 +206,52 @@ export default function TeamDetails({
   }, [assets])
   const maxVolume = assetEntries.reduce((m, [, v]) => Math.max(m, v.volume), 1)
   const maxPnl = assetEntries.reduce((m, [, v]) => Math.max(m, Math.abs(v.pnl)), 1)
+
+  const downloadPnlCard = () => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 720
+    canvas.height = 420
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height)
+    gradient.addColorStop(0, 'rgba(15,23,42,0.95)')
+    gradient.addColorStop(1, 'rgba(2,6,23,0.95)')
+    ctx.fillStyle = gradient
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    ctx.strokeStyle = 'rgba(148,163,184,0.25)'
+    ctx.lineWidth = 2
+    ctx.strokeRect(16, 16, canvas.width - 32, canvas.height - 32)
+
+    ctx.fillStyle = 'rgba(148,163,184,0.9)'
+    ctx.font = '16px Space Grotesk, sans-serif'
+    ctx.fillText('Cumulative P&L', 40, 70)
+
+    ctx.fillStyle = '#f8fafc'
+    ctx.font = '28px Space Grotesk, sans-serif'
+    ctx.fillText(name, 40, 110)
+
+    const pnlColor = totalPnl < 0 ? '#fca5a5' : '#34d399'
+    ctx.fillStyle = pnlColor
+    ctx.font = '64px Space Grotesk, sans-serif'
+    const pnlText = `${totalPnl < 0 ? '-' : '+'}$${Math.abs(totalPnl).toFixed(0)}`
+    ctx.fillText(pnlText, 40, 200)
+
+    ctx.fillStyle = 'rgba(226,232,240,0.8)'
+    ctx.font = '22px Space Grotesk, sans-serif'
+    const pctText = `(${totalPnlPct >= 0 ? '+' : ''}${totalPnlPct.toFixed(2)}%)`
+    ctx.fillText(pctText, 40, 238)
+
+    ctx.fillStyle = 'rgba(148,163,184,0.8)'
+    ctx.font = '16px Space Grotesk, sans-serif'
+    ctx.fillText(`Range: ${range === '1D' ? '24H' : range}`, 40, 285)
+
+    const link = document.createElement('a')
+    link.download = `${name.replace(/\\s+/g, '-')}-pnl.png`
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+  }
 
   return (
     <section className="team-details">
@@ -241,6 +289,13 @@ export default function TeamDetails({
               {totalPnl < 0 ? '-' : '+'}${Math.abs(totalPnl).toFixed(0)}
               <span className="team-details-chart-pct">({totalPnlPct >= 0 ? '+' : ''}{totalPnlPct.toFixed(2)}%)</span>
             </div>
+            <button
+              type="button"
+              className="team-details-download"
+              onClick={() => setShowPnlCard((s) => !s)}
+            >
+              {showPnlCard ? 'Hide P&L Card' : 'Show P&L Card'}
+            </button>
           </div>
           <Sparkline data={cumulative} color={color} height={273} showRightAxis />
           <div className="team-details-times">
@@ -298,6 +353,36 @@ export default function TeamDetails({
           </div>
         </div>
       </div>
+
+      {showPnlCard && (
+        <div className="team-details-modal" onClick={() => setShowPnlCard(false)}>
+          <div className="team-details-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="team-details-download-card-inner">
+          <div className="team-details-download-title">Cumulative P&amp;L</div>
+          <img className="team-details-download-logo" src={gemiLogo} alt="Gemi logo" />
+          <div className="team-details-download-name">{name}</div>
+              <div className={`team-details-download-value ${totalPnl < 0 ? 'neg' : 'pos'}`}>
+                {totalPnl < 0 ? '-' : '+'}${Math.abs(totalPnl).toFixed(0)}
+                <span className="team-details-download-pct">
+                  ({totalPnlPct >= 0 ? '+' : ''}{totalPnlPct.toFixed(2)}%)
+                </span>
+              </div>
+              <div className="team-details-download-range">Range: {range === '1D' ? '24H' : range}</div>
+            </div>
+            <div className="team-details-download-mini">
+              <Sparkline data={cumulative} color={color} height={90} showRightAxis={false} />
+            </div>
+            <div className="team-details-modal-actions">
+              <button type="button" className="team-details-download" onClick={downloadPnlCard}>
+                Download P&amp;L Card
+              </button>
+              <button type="button" className="team-details-download secondary" onClick={() => setShowPnlCard(false)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="team-details-heatmap">
         <div className="team-details-heatmap-title">Assets Traded</div>
