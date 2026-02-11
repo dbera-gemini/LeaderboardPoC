@@ -1,8 +1,10 @@
-import type { ScoreEntry } from '../types'
+import type { AssetEntry, ScoreEntry } from '../types'
+
+type Entry = ScoreEntry | AssetEntry
 
 type IngestPayload = {
   topic: string
-  data: ScoreEntry
+  data: Entry
 }
 
 type SubscribeMsg = {
@@ -25,12 +27,12 @@ type IngestMsg = {
 type WorkerInMsg = SubscribeMsg | UnsubscribeMsg | IngestMsg
 
 type WorkerOutMsg =
-  | { type: 'subscribed'; id: string; topic: string; snapshot: ScoreEntry[] }
-  | { type: 'update'; topic: string; entry: ScoreEntry }
+  | { type: 'subscribed'; id: string; topic: string; snapshot: Entry[] }
+  | { type: 'update'; topic: string; entry: Entry }
   | { type: 'unsubscribed'; id: string; topic: string }
   | { type: 'error'; message: string }
 
-const storage = new Map<string, ScoreEntry[]>()
+const storage = new Map<string, Entry[]>()
 const subscribers = new Map<string, Set<string>>()
 
 function ensureTopic(topic: string) {

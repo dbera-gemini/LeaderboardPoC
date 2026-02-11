@@ -1,13 +1,15 @@
 // Wrapper for the data processor web worker. Use this from main thread.
 
 import WorkerModule from './dataProcessor.worker.ts?worker'
-import type { ScoreEntry } from '../types'
+import type { AssetEntry, ScoreEntry } from '../types'
 
 type Callback = (msg: WorkerOutMsg) => void
 
+type Entry = ScoreEntry | AssetEntry
+
 type WorkerOutMsg =
-  | { type: 'subscribed'; id: string; topic: string; snapshot: ScoreEntry[] }
-  | { type: 'update'; topic: string; entry: ScoreEntry }
+  | { type: 'subscribed'; id: string; topic: string; snapshot: Entry[] }
+  | { type: 'update'; topic: string; entry: Entry }
   | { type: 'unsubscribed'; id: string; topic: string }
   | { type: 'error'; message: string }
 
@@ -42,7 +44,7 @@ export class DataProcessor {
     this.callbacks.delete(id)
   }
 
-  ingest(topic: string, data: ScoreEntry) {
+  ingest(topic: string, data: Entry) {
     this.worker.postMessage({ action: 'ingest', payload: { topic, data } })
   }
 

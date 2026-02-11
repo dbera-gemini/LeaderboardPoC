@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Simple mock WebSocket server for testing the data processor.
- * Sends random 'scores' updates every second.
+ * Sends random team_pnl and asset_pnl updates.
  */
 import { WebSocketServer } from 'ws'
 
@@ -29,20 +29,33 @@ function sendRandomScore(ws) {
   const pick = teams[Math.floor(Math.random() * teams.length)]
   const assetPnl = Number(((Math.random() - 0.48) * 200).toFixed(2))
   const assetVolume = Number((Math.random() * 15000 + 500).toFixed(2))
-  const payload = {
-    topic: 'scores',
+  const pnlPayload = {
+    topic: 'team_pnl',
     data: {
       user: pick.user,
       teamId: pick.id,
-      score: Math.floor(Math.random() * 1000),
+      pnl: Math.floor(Math.random() * 1000),
       sharpe: Number((Math.random() * 4 - 1).toFixed(2)),
+      winrate: Math.floor(Math.random() * 100),
+      max_drawdown: Number((Math.random() * 50).toFixed(2)),
+      risk_per_trade: Number((Math.random() * 100).toFixed(2)),
+      ts: Date.now(),
+    },
+  }
+  const assetPayload = {
+    topic: 'asset_pnl',
+    data: {
+      user: pick.user,
+      teamId: pick.id,
+      product_type: 'spot',
       asset: assets[Math.floor(Math.random() * assets.length)],
       assetPnl,
       assetVolume,
       ts: Date.now(),
     },
   }
-  ws.send(JSON.stringify(payload))
+  ws.send(JSON.stringify(pnlPayload))
+  ws.send(JSON.stringify(assetPayload))
 }
 
 function sendSnapshot(ws) {
@@ -51,18 +64,30 @@ function sendSnapshot(ws) {
   const snapshot1d = []
   const snapshot1w = []
   const snapshot1m = []
+  const asset1d = []
+  const asset1w = []
+  const asset1m = []
   const jitter = (span) => Math.floor((Math.random() - 0.5) * span)
   for (const team of TEAMS) {
     const base = Math.floor(Math.random() * 800) + 200
     const weeklyDrift = Math.floor(Math.random() * 40) - 20
     const monthlyDrift = Math.floor(Math.random() * 80) - 40
     for (let i = 24; i >= 1; i--) {
-      const score = Math.max(0, base + jitter(120))
+      const pnl = Math.max(0, base + jitter(120))
       snapshot1d.push({
         user: team.user,
         teamId: team.id,
-        score,
+        pnl,
         sharpe: Number((Math.random() * 4 - 1).toFixed(2)),
+        winrate: Math.floor(Math.random() * 100),
+        max_drawdown: Number((Math.random() * 50).toFixed(2)),
+        risk_per_trade: Number((Math.random() * 100).toFixed(2)),
+        ts: now - i * 60 * 60 * 1000,
+      })
+      asset1d.push({
+        user: team.user,
+        teamId: team.id,
+        product_type: 'spot',
         asset: assets[Math.floor(Math.random() * assets.length)],
         assetPnl: Number(((Math.random() - 0.48) * 200).toFixed(2)),
         assetVolume: Number((Math.random() * 15000 + 500).toFixed(2)),
@@ -70,12 +95,21 @@ function sendSnapshot(ws) {
       })
     }
     for (let i = 7; i >= 1; i--) {
-      const score = Math.max(0, base + weeklyDrift * (7 - i) + jitter(80))
+      const pnl = Math.max(0, base + weeklyDrift * (7 - i) + jitter(80))
       snapshot1w.push({
         user: team.user,
         teamId: team.id,
-        score,
+        pnl,
         sharpe: Number((Math.random() * 4 - 1).toFixed(2)),
+        winrate: Math.floor(Math.random() * 100),
+        max_drawdown: Number((Math.random() * 50).toFixed(2)),
+        risk_per_trade: Number((Math.random() * 100).toFixed(2)),
+        ts: now - i * 24 * 60 * 60 * 1000,
+      })
+      asset1w.push({
+        user: team.user,
+        teamId: team.id,
+        product_type: 'spot',
         asset: assets[Math.floor(Math.random() * assets.length)],
         assetPnl: Number(((Math.random() - 0.48) * 200).toFixed(2)),
         assetVolume: Number((Math.random() * 15000 + 500).toFixed(2)),
@@ -83,12 +117,21 @@ function sendSnapshot(ws) {
       })
     }
     for (let i = 30; i >= 1; i--) {
-      const score = Math.max(0, base + monthlyDrift * (30 - i) + jitter(120))
+      const pnl = Math.max(0, base + monthlyDrift * (30 - i) + jitter(120))
       snapshot1m.push({
         user: team.user,
         teamId: team.id,
-        score,
+        pnl,
         sharpe: Number((Math.random() * 4 - 1).toFixed(2)),
+        winrate: Math.floor(Math.random() * 100),
+        max_drawdown: Number((Math.random() * 50).toFixed(2)),
+        risk_per_trade: Number((Math.random() * 100).toFixed(2)),
+        ts: now - i * 24 * 60 * 60 * 1000,
+      })
+      asset1m.push({
+        user: team.user,
+        teamId: team.id,
+        product_type: 'spot',
         asset: assets[Math.floor(Math.random() * assets.length)],
         assetPnl: Number(((Math.random() - 0.48) * 200).toFixed(2)),
         assetVolume: Number((Math.random() * 15000 + 500).toFixed(2)),
@@ -96,9 +139,12 @@ function sendSnapshot(ws) {
       })
     }
   }
-  ws.send(JSON.stringify({ topic: 'scores', type: 'snapshot', range: '1D', data: snapshot1d }))
-  ws.send(JSON.stringify({ topic: 'scores', type: 'snapshot', range: '1W', data: snapshot1w }))
-  ws.send(JSON.stringify({ topic: 'scores', type: 'snapshot', range: '1M', data: snapshot1m }))
+  ws.send(JSON.stringify({ topic: 'team_pnl', type: 'snapshot', range: '1D', data: snapshot1d }))
+  ws.send(JSON.stringify({ topic: 'team_pnl', type: 'snapshot', range: '1W', data: snapshot1w }))
+  ws.send(JSON.stringify({ topic: 'team_pnl', type: 'snapshot', range: '1M', data: snapshot1m }))
+  ws.send(JSON.stringify({ topic: 'asset_pnl', type: 'snapshot', range: '1D', data: asset1d }))
+  ws.send(JSON.stringify({ topic: 'asset_pnl', type: 'snapshot', range: '1W', data: asset1w }))
+  ws.send(JSON.stringify({ topic: 'asset_pnl', type: 'snapshot', range: '1M', data: asset1m }))
 }
 
 wss.on('connection', (ws) => {

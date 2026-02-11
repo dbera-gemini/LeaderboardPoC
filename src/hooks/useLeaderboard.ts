@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import DataProcessor from '../workers/dataProcessor'
-import type { ScoreEntry, SnapshotPayload, Team } from '../types'
+import type { AssetEntry, AssetSnapshotPayload, ScoreEntry, SnapshotPayload, Team } from '../types'
 
 const SEED_TEAMS = [
   { id: 'alpha', name: 'Team Alpha', seed: [100, 120, 80, 150], sharpe: 1.1 },
@@ -41,7 +41,7 @@ function initTeams(): Team[] {
   }))
 }
 
-function resolveTeamIndex(teams: Team[], entry: ScoreEntry) {
+function resolveTeamIndex(teams: Team[], entry: ScoreEntry | AssetEntry) {
   if (typeof entry.teamId === 'string') {
     const idx = teams.findIndex((t) => t.id === entry.teamId)
     if (idx >= 0) return idx
@@ -50,7 +50,7 @@ function resolveTeamIndex(teams: Team[], entry: ScoreEntry) {
   return Math.abs(key.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % teams.length
 }
 
-function applyAssetUpdate(team: Team, entry: ScoreEntry) {
+function applyAssetUpdate(team: Team, entry: AssetEntry) {
   const asset = typeof entry.asset === 'string' ? entry.asset : 'UNK'
   const assetPnl = typeof entry.assetPnl === 'number' ? entry.assetPnl : 0
   const assetVolume = typeof entry.assetVolume === 'number' ? entry.assetVolume : 0
@@ -65,17 +65,23 @@ function applyAssetUpdate(team: Team, entry: ScoreEntry) {
 }
 
 function applyLiveUpdate(team: Team, entry: ScoreEntry): Team {
-  const value = typeof entry.score === 'number' ? entry.score : 0
+  const value = typeof entry.pnl === 'number' ? entry.pnl : 0
   const sharpe = typeof entry.sharpe === 'number' ? entry.sharpe : team.sharpe
+  const winRate = typeof entry.winrate === 'number' ? entry.winrate : team.winRate
+  const riskPerTrade = typeof entry.risk_per_trade === 'number' ? entry.risk_per_trade : team.riskPerTrade
   const liveSeries = [...(team.liveSeries || []), value].slice(-48)
   const series = [...(team.historySeries || []), ...liveSeries]
+  const computedDd = computeMaxDrawdown(series)
+  const maxDrawdown = typeof entry.max_drawdown === 'number' ? entry.max_drawdown : computedDd
   return {
     ...team,
     liveSeries,
     series,
     sharpe,
-    maxDrawdown: computeMaxDrawdown(series),
-    assets: applyAssetUpdate(team, entry),
+    winRate,
+    maxDrawdown,
+    riskPerTrade,
+    assets: team.assets,
   }
 }
 
@@ -90,14 +96,12 @@ function applySnapshot(teams: Team[], payload: SnapshotPayload) {
   }
   for (const [idx, list] of buckets.entries()) {
     list.sort((a, b) => (a.ts || 0) - (b.ts || 0))
-    const history = list.map((e) => (typeof e.score === 'number' ? e.score : 0))
+    const history = list.map((e) => (typeof e.pnl === 'number' ? e.pnl : 0))
     const lastSharpe = list.length ? list[list.length - 1].sharpe : next[idx].sharpe
-    let assets = { ...(next[idx].assets || {}) }
-    if (range === '1D') {
-      for (const entry of list) {
-        assets = applyAssetUpdate({ ...next[idx], assets }, entry)
-      }
-    }
+    const lastWin = list.length ? list[list.length - 1].winrate : next[idx].winRate
+    const lastDd = list.length ? list[list.length - 1].max_drawdown : next[idx].maxDrawdown
+    const lastRisk = list.length ? list[list.length - 1].risk_per_trade : next[idx].riskPerTrade
+    const computedDd = computeMaxDrawdown(range === '1D' ? history : next[idx].series)
     next[idx] = {
       ...next[idx],
       historySeries: range === '1D' ? history : next[idx].historySeries,
@@ -105,9 +109,28 @@ function applySnapshot(teams: Team[], payload: SnapshotPayload) {
       liveSeries: [],
       series: range === '1D' ? history : next[idx].series,
       sharpe: typeof lastSharpe === 'number' ? lastSharpe : next[idx].sharpe,
-      maxDrawdown: computeMaxDrawdown(range === '1D' ? history : next[idx].series),
-      assets,
+      winRate: typeof lastWin === 'number' ? lastWin : next[idx].winRate,
+      maxDrawdown: typeof lastDd === 'number' ? lastDd : computedDd,
+      riskPerTrade: typeof lastRisk === 'number' ? lastRisk : next[idx].riskPerTrade,
     }
+  }
+  return next
+}
+
+function applyAssetSnapshot(teams: Team[], payload: AssetSnapshotPayload) {
+  const next = teams.map((t) => ({ ...t }))
+  const buckets = new Map<number, AssetEntry[]>()
+  for (const entry of payload.data || []) {
+    const idx = resolveTeamIndex(next, entry)
+    if (!buckets.has(idx)) buckets.set(idx, [])
+    buckets.get(idx)!.push(entry)
+  }
+  for (const [idx, list] of buckets.entries()) {
+    let assets = { ...(next[idx].assets || {}) }
+    for (const entry of list) {
+      assets = applyAssetUpdate({ ...next[idx], assets }, entry)
+    }
+    next[idx] = { ...next[idx], assets }
   }
   return next
 }
@@ -132,9 +155,19 @@ export function useLeaderboard() {
       })
     }
 
-    const subId = dp.subscribe('scores', (msg) => {
-      if (msg.type === 'update') {
-        pending.push(msg.entry)
+    const subId = dp.subscribe('team_pnl', (msg) => {
+      if (msg.type === 'update' && msg.topic === 'team_pnl') {
+        pending.push(msg.entry as ScoreEntry)
+      }
+    })
+    const assetSubId = dp.subscribe('asset_pnl', (msg) => {
+      if (msg.type === 'update' && msg.topic === 'asset_pnl') {
+        setTeams((prev) => {
+          const next = [...prev]
+          const idx = resolveTeamIndex(next, msg.entry as AssetEntry)
+          next[idx] = { ...next[idx], assets: applyAssetUpdate(next[idx], msg.entry as AssetEntry) }
+          return next
+        })
       }
     })
 
@@ -144,7 +177,11 @@ export function useLeaderboard() {
         const parsed = JSON.parse(ev.data as string)
         if (parsed && parsed.topic) {
           if (parsed.type === 'snapshot') {
-            setTeams((prev) => applySnapshot(prev, parsed as SnapshotPayload))
+            if (parsed.topic === 'team_pnl') {
+              setTeams((prev) => applySnapshot(prev, parsed as SnapshotPayload))
+            } else if (parsed.topic === 'asset_pnl') {
+              setTeams((prev) => applyAssetSnapshot(prev, parsed as AssetSnapshotPayload))
+            }
           } else {
             dp.ingest(parsed.topic, parsed.data)
           }
@@ -161,7 +198,8 @@ export function useLeaderboard() {
     flushTimer = window.requestAnimationFrame(frameLoop)
 
     return () => {
-      dp.unsubscribe(subId, 'scores')
+      dp.unsubscribe(subId, 'team_pnl')
+      dp.unsubscribe(assetSubId, 'asset_pnl')
       dp.terminate()
       ws.close()
       if (flushTimer != null) cancelAnimationFrame(flushTimer)
