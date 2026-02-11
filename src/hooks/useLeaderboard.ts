@@ -32,6 +32,7 @@ function initTeams(): Team[] {
     id: t.id,
     name: t.name,
     historySeries: t.seed,
+    historyByRange: { '1D': t.seed, '1W': t.seed, '1M': t.seed },
     liveSeries: [],
     series: t.seed,
     sharpe: t.sharpe,
@@ -80,6 +81,7 @@ function applyLiveUpdate(team: Team, entry: ScoreEntry): Team {
 
 function applySnapshot(teams: Team[], payload: SnapshotPayload) {
   const next = teams.map((t) => ({ ...t }))
+  const range = payload.range ?? '1D'
   const buckets = new Map<number, ScoreEntry[]>()
   for (const entry of payload.data || []) {
     const idx = resolveTeamIndex(next, entry)
@@ -96,11 +98,12 @@ function applySnapshot(teams: Team[], payload: SnapshotPayload) {
     }
     next[idx] = {
       ...next[idx],
-      historySeries: history,
+      historySeries: range === '1D' ? history : next[idx].historySeries,
+      historyByRange: { ...(next[idx].historyByRange || {}), [range]: history },
       liveSeries: [],
-      series: history,
+      series: range === '1D' ? history : next[idx].series,
       sharpe: typeof lastSharpe === 'number' ? lastSharpe : next[idx].sharpe,
-      maxDrawdown: computeMaxDrawdown(history),
+      maxDrawdown: computeMaxDrawdown(range === '1D' ? history : next[idx].series),
       assets,
     }
   }

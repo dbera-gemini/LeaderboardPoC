@@ -9,6 +9,7 @@ export type Team = {
   name: string
   series: number[]
   historySeries: number[]
+  historyByRange: Record<'1D' | '1W' | '1M', number[]>
   liveSeries: number[]
   sharpe?: number
   maxDrawdown?: number
@@ -29,6 +30,7 @@ export type ScoreEntry = {
 export type SnapshotPayload = {
   topic: string
   type: 'snapshot'
+  range?: '1D' | '1W' | '1M'
   data: ScoreEntry[]
 }
 

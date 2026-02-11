@@ -1,9 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 type Props = {
   name: string
   series: number[]
   historySeries?: number[]
+  historyByRange?: Record<'1D' | '1W' | '1M', number[]>
   liveSeries?: number[]
   sharpe?: number
   maxDrawdown?: number
@@ -24,6 +25,7 @@ function Sparkline({
   height?: number
   showRightAxis?: boolean
 }) {
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
   if (!data || data.length === 0) return <div style={{ height }} />
   const w = 720
   const h = height
@@ -40,6 +42,7 @@ function Sparkline({
     v,
   }))
   const lastPoint = coords[coords.length - 1]
+  const activePoint = hoverIdx != null ? coords[hoverIdx] : null
 
   const axisTicks = showRightAxis ? [max, 0, min] : []
 
@@ -85,10 +88,24 @@ function Sparkline({
 
   return (
     <div className={`team-details-chart-shell ${showRightAxis ? 'with-axis' : ''}`}>
-      <svg className="team-details-chart" width={w} height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
-        <line x1="0" y1={zeroY} x2={w} y2={zeroY} stroke="#f87171" strokeWidth="1" strokeDasharray="4 4" />
-        {pos.map((seg, i) => (
-          <path
+      <div className="team-details-chart-hover">
+        <svg
+          className="team-details-chart"
+          width={w}
+          height={h}
+          viewBox={`0 0 ${w} ${h}`}
+          preserveAspectRatio="none"
+          onMouseMove={(e) => {
+            const rect = (e.currentTarget as SVGSVGElement).getBoundingClientRect()
+            const x = e.clientX - rect.left
+            const idx = Math.min(coords.length - 1, Math.max(0, Math.round(x / (w / Math.max(1, coords.length - 1)))))
+            setHoverIdx(idx)
+          }}
+          onMouseLeave={() => setHoverIdx(null)}
+        >
+      <line x1="0" y1={zeroY} x2={w} y2={zeroY} stroke="#f87171" strokeWidth="1" strokeDasharray="4 4" />
+      {pos.map((seg, i) => (
+        <path
             key={`p-${i}`}
             d={pathFor(seg)}
             fill="none"
@@ -98,19 +115,34 @@ function Sparkline({
             strokeLinejoin="round"
           />
         ))}
-        {neg.map((seg, i) => (
-          <path
-            key={`n-${i}`}
-            d={pathFor(seg)}
-            fill="none"
-            stroke="#fca5a5"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        ))}
-        <circle cx={lastPoint.x} cy={lastPoint.y} r={3} fill={color} />
-      </svg>
+      {neg.map((seg, i) => (
+        <path
+          key={`n-${i}`}
+          d={pathFor(seg)}
+          fill="none"
+          stroke="#fca5a5"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ))}
+      <circle cx={lastPoint.x} cy={lastPoint.y} r={3} fill={color} />
+      {activePoint && (
+        <circle cx={activePoint.x} cy={activePoint.y} r={4} fill={color} />
+      )}
+    </svg>
+    {activePoint && (
+      <div
+        className="team-details-tooltip"
+        style={{
+          left: `${(activePoint.x / w) * 100}%`,
+          top: `${(activePoint.y / h) * 100}%`,
+        }}
+      >
+        {activePoint.v >= 0 ? '+' : '-'}${Math.abs(activePoint.v).toFixed(0)}
+      </div>
+    )}
+      </div>
       {showRightAxis && (
         <div className="team-details-axis">
           {axisTicks.map((v, i) => (
@@ -128,6 +160,7 @@ export default function TeamDetails({
   name,
   series,
   historySeries = [],
+  historyByRange,
   liveSeries = [],
   sharpe,
   maxDrawdown,
@@ -136,10 +169,14 @@ export default function TeamDetails({
   logoSrc = 'src/assets/design/team-logo.png',
   onBack,
 }: Props) {
+  const [range, setRange] = useState<'1D' | '1W' | '1M'>('1D')
   const fullSeries = useMemo(() => {
+    if (range !== '1D') {
+      return historyByRange?.[range] ?? historySeries ?? series
+    }
     if (historySeries.length) return [...historySeries, ...liveSeries]
     return series
-  }, [historySeries, liveSeries, series])
+  }, [historyByRange, historySeries, liveSeries, range, series])
   const chartSeries = useMemo(() => fullSeries.slice(-48), [fullSeries])
   const cumulative = useMemo(() => {
     if (!chartSeries.length) return []
@@ -187,6 +224,18 @@ export default function TeamDetails({
 
       <div className="team-details-main">
         <div className="team-details-chart-wrap">
+          <div className="team-details-range">
+            {(['1D', '1W', '1M'] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                className={`team-details-range-btn ${range === r ? 'active' : ''}`}
+                onClick={() => setRange(r)}
+              >
+                {r === '1D' ? '24H' : r}
+              </button>
+            ))}
+          </div>
           <div className="team-details-chart-header">
             <div className={`team-details-chart-value ${totalPnl < 0 ? 'neg' : 'pos'}`}>
               {totalPnl < 0 ? '-' : '+'}${Math.abs(totalPnl).toFixed(0)}
@@ -195,11 +244,33 @@ export default function TeamDetails({
           </div>
           <Sparkline data={cumulative} color={color} height={273} showRightAxis />
           <div className="team-details-times">
-            <span>24h</span>
-            <span>18h</span>
-            <span>12h</span>
-            <span>6h</span>
-            <span>Now</span>
+            {range === '1D' && (
+              <>
+                <span>24h</span>
+                <span>18h</span>
+                <span>12h</span>
+                <span>6h</span>
+                <span>Now</span>
+              </>
+            )}
+            {range === '1W' && (
+              <>
+                <span>7d</span>
+                <span>5d</span>
+                <span>3d</span>
+                <span>1d</span>
+                <span>Now</span>
+              </>
+            )}
+            {range === '1M' && (
+              <>
+                <span>30d</span>
+                <span>21d</span>
+                <span>14d</span>
+                <span>7d</span>
+                <span>Now</span>
+              </>
+            )}
           </div>
         </div>
 

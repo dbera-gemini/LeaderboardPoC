@@ -74,6 +74,7 @@ function App() {
           name={selectedTeam.name}
           series={selectedTeam.series}
           historySeries={selectedTeam.historySeries}
+          historyByRange={selectedTeam.historyByRange}
           liveSeries={selectedTeam.liveSeries}
           sharpe={selectedTeam.sharpe}
           maxDrawdown={selectedTeam.maxDrawdown}
