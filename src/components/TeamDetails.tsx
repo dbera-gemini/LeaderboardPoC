@@ -336,16 +336,60 @@ export default function TeamDetails({
             <div className="team-details-mini">
               {Math.max(0, series.length - 1)} trades
             </div>
+            <div className="team-details-range-bar">
+              <div className="team-details-range-track">
+                <div
+                  className="team-details-range-fill"
+                  style={{ width: `${Math.min(100, Math.max(0, winRate))}%` }}
+                />
+              </div>
+              <div className="team-details-range-labels">
+                <span>Low</span>
+                <span>Ok</span>
+                <span>Good</span>
+              </div>
+            </div>
           </div>
           <div className="team-details-kpi">
             <div className="team-details-label">Sharpe</div>
             <div className="team-details-value">{typeof sharpe === 'number' ? sharpe.toFixed(2) : '—'}</div>
+            {typeof sharpe === 'number' && (
+              <div className="team-details-range-bar">
+                <div className="team-details-range-track">
+                  <div
+                    className="team-details-range-fill"
+                    style={{ width: `${Math.min(100, Math.max(0, (sharpe / 3) * 100))}%` }}
+                  />
+                </div>
+                <div className="team-details-range-labels">
+                  <span>Low</span>
+                  <span>Ok</span>
+                  <span>Good</span>
+                  <span>3+</span>
+                </div>
+              </div>
+            )}
           </div>
           <div className="team-details-kpi">
             <div className="team-details-label">Max Drawdown</div>
             <div className="team-details-value">
               {typeof maxDrawdown === 'number' ? `${maxDrawdown.toFixed(2)}%` : '—'}
             </div>
+            {typeof maxDrawdown === 'number' && (
+              <div className="team-details-range-bar">
+                <div className="team-details-range-track">
+                  <div
+                    className="team-details-range-fill invert"
+                    style={{ width: `${Math.min(100, Math.max(0, (maxDrawdown / 50) * 100))}%` }}
+                  />
+                </div>
+                <div className="team-details-range-labels">
+                  <span>Good</span>
+                  <span>Ok</span>
+                  <span>Low</span>
+                </div>
+              </div>
+            )}
           </div>
           <div className="team-details-kpi">
             <div className="team-details-label">Net P&amp;L</div>

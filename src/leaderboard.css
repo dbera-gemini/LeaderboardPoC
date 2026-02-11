@@ -364,6 +364,27 @@
 .team-details-value.pos{color:#34d399}
 .team-details-value.neg{color:#fca5a5}
 .team-details-mini{margin-top:4px;font-size:10px;color:rgba(148,163,184,0.7)}
+.team-details-range-bar{margin-top:8px}
+.team-details-range-track{
+  height:6px;
+  border-radius:999px;
+  background:rgba(148,163,184,0.2);
+  overflow:hidden;
+}
+.team-details-range-fill{
+  height:100%;
+  background:linear-gradient(90deg, #fca5a5 0%, #fbbf24 45%, #34d399 100%);
+}
+.team-details-range-fill.invert{
+  background:linear-gradient(90deg, #34d399 0%, #fbbf24 45%, #fca5a5 100%);
+}
+.team-details-range-labels{
+  margin-top:4px;
+  display:flex;
+  justify-content:space-between;
+  font-size:9px;
+  color:rgba(148,163,184,0.7);
+}
 .team-details-chart-wrap{
   flex:2 1 520px;
   padding:12px;
