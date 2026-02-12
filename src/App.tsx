@@ -39,13 +39,15 @@ function App() {
     const nextIds = snapshot.slice(0, 3).map((t) => t.id)
     setTopTeamIds(nextIds)
     if (withFlash) {
-      setTopFlash(true)
-      window.setTimeout(() => setTopFlash(false), 1200)
       const nextLeader = nextIds[0] ?? null
       if (nextLeader && nextLeader !== prevLeaderRef.current) {
         prevLeaderRef.current = nextLeader
+        setTopFlash(true)
         setLeaderFlash(true)
-        window.setTimeout(() => setLeaderFlash(false), 1200)
+        window.setTimeout(() => {
+          setTopFlash(false)
+          setLeaderFlash(false)
+        }, 1200)
       }
     }
   }
@@ -57,8 +59,10 @@ function App() {
   }, [])
 
   useEffect(() => {
-    computeTop(false)
-  }, [teams])
+    if (!topTeamIds.length && teams.length) {
+      computeTop(false)
+    }
+  }, [teams, topTeamIds.length])
 
   const topTeams = useMemo(() => {
     const map = new Map(teams.map((t) => [t.id, t]))
