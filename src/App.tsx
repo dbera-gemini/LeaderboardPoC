@@ -28,16 +28,17 @@ function App() {
     teamsRef.current = teams
   }, [teams])
 
-  useEffect(() => {
-    const computeTop = () => {
-      const snapshot = [...teamsRef.current]
-      snapshot.sort((a, b) => {
-        const aPnl = (a.series.at(-1) ?? 0) - (a.series[0] ?? 0)
-        const bPnl = (b.series.at(-1) ?? 0) - (b.series[0] ?? 0)
-        return bPnl - aPnl
-      })
-      const nextIds = snapshot.slice(0, 3).map((t) => t.id)
-      setTopTeamIds(nextIds)
+  const computeTop = (withFlash = false) => {
+    const snapshot = [...teamsRef.current]
+    if (!snapshot.length) return
+    snapshot.sort((a, b) => {
+      const aPnl = (a.series.at(-1) ?? 0) - (a.series[0] ?? 0)
+      const bPnl = (b.series.at(-1) ?? 0) - (b.series[0] ?? 0)
+      return bPnl - aPnl
+    })
+    const nextIds = snapshot.slice(0, 3).map((t) => t.id)
+    setTopTeamIds(nextIds)
+    if (withFlash) {
       setTopFlash(true)
       window.setTimeout(() => setTopFlash(false), 1200)
       const nextLeader = nextIds[0] ?? null
@@ -47,11 +48,17 @@ function App() {
         window.setTimeout(() => setLeaderFlash(false), 1200)
       }
     }
+  }
 
-    computeTop()
-    const interval = window.setInterval(computeTop, 10_000)
+  useEffect(() => {
+    computeTop(true)
+    const interval = window.setInterval(() => computeTop(true), 30_000)
     return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    computeTop(false)
+  }, [teams])
 
   const topTeams = useMemo(() => {
     const map = new Map(teams.map((t) => [t.id, t]))
