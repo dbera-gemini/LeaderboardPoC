@@ -86,6 +86,7 @@ function applyLiveUpdate(team: Team, entry: ScoreEntry): Team {
   const sharpe = typeof entry.sharpe === 'number' ? entry.sharpe : team.sharpe
   const winRate = typeof entry.winrate === 'number' ? entry.winrate : team.winRate
   const riskPerTrade = typeof entry.risk_per_trade === 'number' ? entry.risk_per_trade : team.riskPerTrade
+  const ranking = typeof entry.ranking === 'number' ? entry.ranking : team.ranking
   const liveSeries = [...(team.liveSeries || []), value].slice(-48)
   const series = [...(team.historySeries || []), ...liveSeries]
   const computedDd = computeMaxDrawdown(series)
@@ -98,6 +99,7 @@ function applyLiveUpdate(team: Team, entry: ScoreEntry): Team {
     winRate,
     maxDrawdown,
     riskPerTrade,
+    ranking,
     assets: team.assets,
   }
 }
@@ -118,6 +120,7 @@ function applySnapshot(teams: Team[], payload: SnapshotPayload) {
     const lastWin = list.length ? list[list.length - 1].winrate : next[idx].winRate
     const lastDd = list.length ? list[list.length - 1].max_drawdown : next[idx].maxDrawdown
     const lastRisk = list.length ? list[list.length - 1].risk_per_trade : next[idx].riskPerTrade
+    const lastRanking = list.length ? list[list.length - 1].ranking : next[idx].ranking
     const computedDd = computeMaxDrawdown(range === '1D' ? history : next[idx].series)
     next[idx] = {
       ...next[idx],
@@ -129,6 +132,7 @@ function applySnapshot(teams: Team[], payload: SnapshotPayload) {
       winRate: typeof lastWin === 'number' ? lastWin : next[idx].winRate,
       maxDrawdown: typeof lastDd === 'number' ? lastDd : computedDd,
       riskPerTrade: typeof lastRisk === 'number' ? lastRisk : next[idx].riskPerTrade,
+      ranking: typeof lastRanking === 'number' ? lastRanking : next[idx].ranking,
     }
   }
   return next

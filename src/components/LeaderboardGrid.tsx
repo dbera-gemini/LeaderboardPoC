@@ -15,7 +15,14 @@ function computeMetrics(team: Team) {
     ? Object.values(team.assets).reduce((sum, a) => sum + (a.volume || 0), 0)
     : 0
 
-  return { realized, pnlPct, sharpe: team.sharpe, maxDrawdown: team.maxDrawdown, totalVolume }
+  return {
+    realized,
+    pnlPct,
+    sharpe: team.sharpe,
+    maxDrawdown: team.maxDrawdown,
+    totalVolume,
+    ranking: team.ranking,
+  }
 }
 
 export default function LeaderboardGrid({ teams }: { teams: Team[] }) {
@@ -70,6 +77,14 @@ export default function LeaderboardGrid({ teams }: { teams: Team[] }) {
     () => [
       { field: 'name', headerName: 'Team', sortable: true, filter: true, minWidth: 120 },
       {
+        field: 'ranking',
+        headerName: 'Ranking',
+        valueFormatter: (p: any) => (typeof p.value === 'number' ? `#${p.value}` : p.value),
+        sortable: true,
+        sort: 'asc' as const,
+        width: 120,
+      },
+      {
         field: 'realized',
         headerName: 'Realized P&L',
         valueFormatter: (p: any) =>
@@ -85,7 +100,6 @@ export default function LeaderboardGrid({ teams }: { teams: Team[] }) {
       {
         field: 'pnlPct',
         headerName: 'P&L %',
-        sort: 'desc' as const,
         valueFormatter: (p: any) => {
           if (typeof p.value !== 'number') return p.value
           const sign = p.value > 0 ? '+' : ''

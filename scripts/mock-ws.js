@@ -27,6 +27,7 @@ function sendRandomScore(ws) {
   const assets = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'AVAX', 'DOT', 'LINK', 'DOGE', 'MATIC']
   const teams = TEAMS
   const pick = teams[Math.floor(Math.random() * teams.length)]
+  const ranking = Math.floor(Math.random() * 50) + 1
   const assetPnl = Number(((Math.random() - 0.48) * 200).toFixed(2))
   const assetVolume = Number((Math.random() * 15000 + 500).toFixed(2))
   const pnlPayload = {
@@ -39,6 +40,7 @@ function sendRandomScore(ws) {
       winrate: Math.floor(Math.random() * 100),
       max_drawdown: Number((Math.random() * 50).toFixed(2)),
       risk_per_trade: Number((Math.random() * 100).toFixed(2)),
+      ranking,
       ts: Date.now(),
     },
   }
@@ -73,6 +75,7 @@ function sendSnapshot(ws) {
     const weeklyDrift = Math.floor(Math.random() * 40) - 20
     const monthlyDrift = Math.floor(Math.random() * 80) - 40
     for (let i = 24; i >= 1; i--) {
+      const ranking = Math.floor(Math.random() * 50) + 1
       const pnl = Math.max(0, base + jitter(120))
       snapshot1d.push({
         user: team.user,
@@ -82,6 +85,7 @@ function sendSnapshot(ws) {
         winrate: Math.floor(Math.random() * 100),
         max_drawdown: Number((Math.random() * 50).toFixed(2)),
         risk_per_trade: Number((Math.random() * 100).toFixed(2)),
+        ranking,
         ts: now - i * 60 * 60 * 1000,
       })
       asset1d.push({
@@ -95,6 +99,7 @@ function sendSnapshot(ws) {
       })
     }
     for (let i = 7; i >= 1; i--) {
+      const ranking = Math.floor(Math.random() * 50) + 1
       const pnl = Math.max(0, base + weeklyDrift * (7 - i) + jitter(80))
       snapshot1w.push({
         user: team.user,
@@ -104,6 +109,7 @@ function sendSnapshot(ws) {
         winrate: Math.floor(Math.random() * 100),
         max_drawdown: Number((Math.random() * 50).toFixed(2)),
         risk_per_trade: Number((Math.random() * 100).toFixed(2)),
+        ranking,
         ts: now - i * 24 * 60 * 60 * 1000,
       })
       asset1w.push({
@@ -117,6 +123,7 @@ function sendSnapshot(ws) {
       })
     }
     for (let i = 30; i >= 1; i--) {
+      const ranking = Math.floor(Math.random() * 50) + 1
       const pnl = Math.max(0, base + monthlyDrift * (30 - i) + jitter(120))
       snapshot1m.push({
         user: team.user,
@@ -126,6 +133,7 @@ function sendSnapshot(ws) {
         winrate: Math.floor(Math.random() * 100),
         max_drawdown: Number((Math.random() * 50).toFixed(2)),
         risk_per_trade: Number((Math.random() * 100).toFixed(2)),
+        ranking,
         ts: now - i * 24 * 60 * 60 * 1000,
       })
       asset1m.push({

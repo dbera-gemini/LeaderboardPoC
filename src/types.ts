@@ -15,6 +15,7 @@ export type Team = {
   winRate?: number
   maxDrawdown?: number
   riskPerTrade?: number
+  ranking?: number
   assets: Record<string, AssetStats>
   assetsByRange: Record<'1D' | '1W' | '1M', Record<string, AssetStats>>
 }
@@ -27,6 +28,7 @@ export type ScoreEntry = {
   winrate?: number
   max_drawdown?: number
   risk_per_trade?: number
+  ranking?: number
   ts?: number
 }
 

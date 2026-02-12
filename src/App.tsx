@@ -32,6 +32,9 @@ function App() {
     const snapshot = [...teamsRef.current]
     if (!snapshot.length) return
     snapshot.sort((a, b) => {
+      const aRank = typeof a.ranking === 'number' ? a.ranking : Number.POSITIVE_INFINITY
+      const bRank = typeof b.ranking === 'number' ? b.ranking : Number.POSITIVE_INFINITY
+      if (aRank !== bRank) return aRank - bRank
       const aPnl = (a.series.at(-1) ?? 0) - (a.series[0] ?? 0)
       const bPnl = (b.series.at(-1) ?? 0) - (b.series[0] ?? 0)
       return bPnl - aPnl
@@ -108,9 +111,9 @@ function App() {
                   series={team.series}
                   sharpe={team.sharpe}
                   maxDrawdown={team.maxDrawdown}
+                  rank={team.ranking ?? idx + 1}
                   color={color}
                   logoSrc={logoSrc}
-                  rank={idx + 1}
                   className={`${topFlash ? 'team-card-leader-flash' : ''} ${isLeader ? `team-card-leader ${leaderFlash ? 'team-card-leader-flash' : ''}` : ''}`.trim()}
                   onClick={() => setSelectedTeamId(team.id)}
                 />
