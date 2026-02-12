@@ -190,6 +190,16 @@ Start the mock WebSocket server:
 npm run start-mock-ws
 ```
 
+Configure WebSocket via `.env`:
+- `VITE_WS_MODE=mock` connects to `ws://localhost:8080`
+- `VITE_WS_MODE=real` connects to `ws://quant-comp-analytics.s-marketplace-staging.use1.eks.gem.link/ws/competition`
+- `VITE_WS_URL=ws://custom-host/path` overrides the URL
+
+When `VITE_WS_MODE=real`, the client sends:
+```json
+{ "type": "subscribe_team_metrics" }
+```
+
 In a second terminal, start the Vite dev server:
 ```bash
 npm run dev
@@ -201,5 +211,5 @@ http://localhost:5173
 ```
 
 ## Notes
-- If the mock server is not running, the app will render static seed data.
+- If the mock server is not running, the app will wait for live data (no seed teams in the client).
 - The Team Details view opens by clicking a team card.
