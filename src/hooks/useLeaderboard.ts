@@ -2,18 +2,16 @@ import { useEffect, useState } from 'react'
 import DataProcessor from '../workers/dataProcessor'
 import type { AssetEntry, AssetSnapshotPayload, ScoreEntry, SnapshotPayload, Team } from '../types'
 
-const SEED_TEAMS = [
-  { id: 'alpha', name: 'Team Alpha', seed: [100, 120, 80, 150], sharpe: 1.1 },
-  { id: 'beta', name: 'Team Beta', seed: [50, 60, 40, 90], sharpe: 0.6 },
-  { id: 'gamma', name: 'Team Gamma', seed: [200, 180, 210, 190], sharpe: 1.8 },
-  { id: 'delta', name: 'Team Delta', seed: [130, 140, 125, 155], sharpe: 0.9 },
-  { id: 'epsilon', name: 'Team Epsilon', seed: [80, 95, 70, 110], sharpe: 0.7 },
-  { id: 'zeta', name: 'Team Zeta', seed: [160, 150, 170, 165], sharpe: 1.3 },
-  { id: 'eta', name: 'Team Eta', seed: [90, 100, 85, 120], sharpe: 0.8 },
-  { id: 'theta', name: 'Team Theta', seed: [210, 205, 215, 225], sharpe: 1.6 },
-  { id: 'iota', name: 'Team Iota', seed: [60, 75, 65, 95], sharpe: 0.5 },
-  { id: 'kappa', name: 'Team Kappa', seed: [140, 135, 150, 160], sharpe: 1.0 },
-]
+const WS_ENDPOINTS = {
+  mock: 'ws://localhost:8080',
+  real: 'ws://quant-comp-analytics.s-marketplace-staging.use1.eks.gem.link/ws/competition',
+} as const
+
+function resolveWsConfig() {
+  const mode = import.meta.env.VITE_WS_MODE === 'real' ? 'real' : 'mock'
+  const override = typeof import.meta.env.VITE_WS_URL === 'string' ? import.meta.env.VITE_WS_URL : ''
+  return { mode, url: override || WS_ENDPOINTS[mode] }
+}
 
 function computeMaxDrawdown(series: number[]) {
   if (!series || series.length < 2) return 0
@@ -28,27 +26,45 @@ function computeMaxDrawdown(series: number[]) {
 }
 
 function initTeams(): Team[] {
-  return SEED_TEAMS.map((t) => ({
-    id: t.id,
-    name: t.name,
-    historySeries: t.seed,
-    historyByRange: { '1D': t.seed, '1W': t.seed, '1M': t.seed },
-    liveSeries: [],
-    series: t.seed,
-    sharpe: t.sharpe,
-    maxDrawdown: computeMaxDrawdown(t.seed),
-    assets: {},
-    assetsByRange: { '1D': {}, '1W': {}, '1M': {} },
-  }))
+  return []
 }
 
 function resolveTeamIndex(teams: Team[], entry: ScoreEntry | AssetEntry) {
+  if (!teams.length) return 0
   if (typeof entry.teamId === 'string') {
     const idx = teams.findIndex((t) => t.id === entry.teamId)
     if (idx >= 0) return idx
   }
   const key = entry.user || ''
   return Math.abs(key.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % teams.length
+}
+
+function createTeam(id: string, name: string, seedValue?: number): Team {
+  const seed = typeof seedValue === 'number' ? [seedValue] : []
+  return {
+    id,
+    name,
+    historySeries: seed,
+    historyByRange: { '1D': seed, '1W': [], '1M': [] },
+    liveSeries: [],
+    series: seed,
+    sharpe: undefined,
+    maxDrawdown: computeMaxDrawdown(seed),
+    assets: {},
+    assetsByRange: { '1D': {}, '1W': {}, '1M': {} },
+  }
+}
+
+function ensureTeamIndex(teams: Team[], entry: ScoreEntry | AssetEntry) {
+  if (typeof entry.teamId === 'string') {
+    const idx = teams.findIndex((t) => t.id === entry.teamId)
+    if (idx >= 0) return idx
+    const seedValue = 'pnl' in entry ? entry.pnl : undefined
+    const name = entry.user || `Team ${entry.teamId}`
+    teams.push(createTeam(entry.teamId, name, seedValue))
+    return teams.length - 1
+  }
+  return resolveTeamIndex(teams, entry)
 }
 
 function applyAssetUpdate(team: Team, entry: AssetEntry) {
@@ -91,7 +107,7 @@ function applySnapshot(teams: Team[], payload: SnapshotPayload) {
   const range = payload.range ?? '1D'
   const buckets = new Map<number, ScoreEntry[]>()
   for (const entry of payload.data || []) {
-    const idx = resolveTeamIndex(next, entry)
+    const idx = ensureTeamIndex(next, entry)
     if (!buckets.has(idx)) buckets.set(idx, [])
     buckets.get(idx)!.push(entry)
   }
@@ -123,7 +139,7 @@ function applyAssetSnapshot(teams: Team[], payload: AssetSnapshotPayload) {
   const range = payload.range ?? '1D'
   const buckets = new Map<number, AssetEntry[]>()
   for (const entry of payload.data || []) {
-    const idx = resolveTeamIndex(next, entry)
+    const idx = ensureTeamIndex(next, entry)
     if (!buckets.has(idx)) buckets.set(idx, [])
     buckets.get(idx)!.push(entry)
   }
@@ -156,7 +172,7 @@ export function useLeaderboard() {
       setTeams((prev) => {
         const next = [...prev]
         for (const entry of pending.splice(0, pending.length)) {
-          const idx = resolveTeamIndex(next, entry)
+          const idx = ensureTeamIndex(next, entry)
           next[idx] = applyLiveUpdate(next[idx], entry)
         }
         return next
@@ -172,7 +188,7 @@ export function useLeaderboard() {
       if (msg.type === 'update' && msg.topic === 'asset_pnl') {
         setTeams((prev) => {
           const next = [...prev]
-          const idx = resolveTeamIndex(next, msg.entry as AssetEntry)
+          const idx = ensureTeamIndex(next, msg.entry as AssetEntry)
           const assets = applyAssetUpdate(next[idx], msg.entry as AssetEntry)
           next[idx] = {
             ...next[idx],
@@ -184,7 +200,13 @@ export function useLeaderboard() {
       }
     })
 
-    const ws = new WebSocket('ws://localhost:8080')
+    const { mode, url } = resolveWsConfig()
+    const ws = new WebSocket(url)
+    ws.addEventListener('open', () => {
+      if (mode === 'real') {
+        ws.send(JSON.stringify({ type: 'subscribe_team_metrics' }))
+      }
+    })
     ws.addEventListener('message', (ev) => {
       try {
         const parsed = JSON.parse(ev.data as string)
