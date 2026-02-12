@@ -23,11 +23,46 @@ const TEAMS = [
   { id: 'kappa', user: 'Team Kappa' },
 ]
 
+function shuffle(list) {
+  const copy = [...list]
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const tmp = copy[i]
+    copy[i] = copy[j]
+    copy[j] = tmp
+  }
+  return copy
+}
+
+let rankMap = null
+function ensureRankMap() {
+  if (rankMap) return
+  const ids = shuffle(TEAMS.map((t) => t.id))
+  rankMap = new Map(ids.map((id, idx) => [id, idx + 1]))
+}
+
+function maybeAdjustRanks() {
+  ensureRankMap()
+  if (Math.random() < 0.15) {
+    const ids = TEAMS.map((t) => t.id)
+    const a = ids[Math.floor(Math.random() * ids.length)]
+    const b = ids[Math.floor(Math.random() * ids.length)]
+    if (a !== b) {
+      const ra = rankMap.get(a)
+      const rb = rankMap.get(b)
+      rankMap.set(a, rb)
+      rankMap.set(b, ra)
+    }
+  }
+}
+
 function sendRandomScore(ws) {
   const assets = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'AVAX', 'DOT', 'LINK', 'DOGE', 'MATIC']
   const teams = TEAMS
+  ensureRankMap()
+  maybeAdjustRanks()
   const pick = teams[Math.floor(Math.random() * teams.length)]
-  const ranking = Math.floor(Math.random() * 50) + 1
+  const ranking = rankMap.get(pick.id) || 1
   const assetPnl = Number(((Math.random() - 0.48) * 200).toFixed(2))
   const assetVolume = Number((Math.random() * 15000 + 500).toFixed(2))
   const pnlPayload = {
@@ -70,12 +105,13 @@ function sendSnapshot(ws) {
   const asset1w = []
   const asset1m = []
   const jitter = (span) => Math.floor((Math.random() - 0.5) * span)
+  ensureRankMap()
   for (const team of TEAMS) {
     const base = Math.floor(Math.random() * 800) + 200
     const weeklyDrift = Math.floor(Math.random() * 40) - 20
     const monthlyDrift = Math.floor(Math.random() * 80) - 40
     for (let i = 24; i >= 1; i--) {
-      const ranking = Math.floor(Math.random() * 50) + 1
+      const ranking = rankMap.get(team.id) || 1
       const pnl = Math.max(0, base + jitter(120))
       snapshot1d.push({
         user: team.user,
@@ -99,7 +135,7 @@ function sendSnapshot(ws) {
       })
     }
     for (let i = 7; i >= 1; i--) {
-      const ranking = Math.floor(Math.random() * 50) + 1
+      const ranking = rankMap.get(team.id) || 1
       const pnl = Math.max(0, base + weeklyDrift * (7 - i) + jitter(80))
       snapshot1w.push({
         user: team.user,
@@ -123,7 +159,7 @@ function sendSnapshot(ws) {
       })
     }
     for (let i = 30; i >= 1; i--) {
-      const ranking = Math.floor(Math.random() * 50) + 1
+      const ranking = rankMap.get(team.id) || 1
       const pnl = Math.max(0, base + monthlyDrift * (30 - i) + jitter(120))
       snapshot1m.push({
         user: team.user,
