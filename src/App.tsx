@@ -49,7 +49,7 @@ function App() {
     }
 
     computeTop()
-    const interval = window.setInterval(computeTop, 5_000)
+    const interval = window.setInterval(computeTop, 10_000)
     return () => clearInterval(interval)
   }, [])
 
